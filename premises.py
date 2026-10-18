@@ -6,6 +6,7 @@ from hashlib import sha256
 import re
 from statement_text import _active_text, _math_normalize, _math_units, _normalized, _scope
 from alignment import _anchor_words, _conclusion
+from premise_clauses import Clause, clauses, body_key, comparison, masks, subject
 
 
 _QUALIFIERS = (
@@ -79,7 +80,7 @@ def _description_properties(description: str, base: str) -> dict[str, str]:
 
 
 def _declarations(text: str) -> list[dict]:
-    active = _active_text(text)
+    active = masks(text)[1]
     records, used = [], set()
     for pattern in (_LET_DECL, _FOR_DECL):
         for match in pattern.finditer(active):
@@ -124,22 +125,8 @@ def _noun_phrase(description: str) -> tuple[str, list[str]] | None:
     return head, modifiers
 
 
-_HYPOTHESIS = re.compile(r"(?<![A-Za-z])(?P<cue>if|suppose(?:\s+that)?|assume(?:\s+that)?|assuming(?:\s+that)?|provided(?:\s+that)?)\s+(?P<body>[^.;,\r\n]{1,220}?)(?=\s*(?:,|\.|;|\bthen\b|$))", re.I)
-
-
-def _premise_region(text: str) -> str:
-    marker = re.search(r"\bthen\b|\bwe\s+have\b|\\(?:Longrightarrow|implies)(?![A-Za-z])|⇒", text, re.I)
-    return text[:marker.start()] if marker else ""
-
-
-def _hypothesis_clauses(text: str) -> list[re.Match]:
-    region = _premise_region(text)
-    clauses = []
-    for match in _HYPOTHESIS.finditer(region):
-        if re.search(r"\bonly\s*$", region[:match.start()], re.I) or re.match(r"and\s+only\s+if\b", match.group("body"), re.I):
-            continue
-        clauses.append(match)
-    return clauses
+def _hypothesis_clauses(text: str) -> list[Clause]:
+    return clauses(text)
 
 
 def _object_mention(text: str, key: str) -> tuple[int, int] | None:
@@ -154,6 +141,7 @@ def _object_mention(text: str, key: str) -> tuple[int, int] | None:
 
 def _simple_predicate(body: str) -> tuple[str, str] | None:
     """Only a positive, single-object adjectival predicate; never bag-of-words."""
+    body = masks(body)[1]
     match = re.fullmatch(r"\s*(?P<object>" + _OBJECT_PATTERN + r")\s+is\s+([A-Za-z]+(?:-[A-Za-z]+)*)\s*", body)
     if not match or _NP_NEGATED.search(body):
         return None
@@ -233,11 +221,16 @@ def _new_premises(old: str, new: str) -> list[dict]:
     # New hypothesis clauses ("If $G$ is planar, then ...") before the conclusion.
     # Exact old clauses or a positive property of the same object can cover a
     # moved condition. Words belonging to another object never provide coverage.
-    old_bodies = {re.sub(r'\s+', ' ', m.group('body')).strip() for m in _hypothesis_clauses(a)}
+    old_bodies = {body_key(m.group('body')) for m in _hypothesis_clauses(a)}
+    existing = {tuple(row['new_span']) for row in comparison(a, b)}
     for match in _hypothesis_clauses(b):
         body = _normalized(match.group("body"))
-        if not generic_scope_supported or not body or re.sub(r'\s+', ' ', match.group('body')).strip() in old_bodies:
+        if (not generic_scope_supported or not body or body_key(match.group('body')) in old_bodies
+                or (match.start(), match.end()) in existing):
             continue
+        key = subject(match.group('body'))
+        if key and any(subject(c.group('body')) == key for c in _hypothesis_clauses(a)):
+            continue  # Multiple old predicates: unresolved correspondence, not absent.
         if any(d["start"] < match.end() and match.start() < d["end"] for d in new_decls):
             continue  # "Suppose $G$ is a planar graph" is compared as a declaration above.
         # Formula-only clauses ("If $n\\geq 3$") are left to formula_scope.
@@ -254,6 +247,12 @@ def _new_premises(old: str, new: str) -> list[dict]:
         om = _object_mention(a, obj) if obj else None
         if not om:
             continue  # No aligned object: preserve raw changes without a premise claim.
+        # A bare object mention is insufficient old evidence. Require one
+        # declaration of that object and retain its complete predicate.
+        anchors = [d for d in old_decls if d['object'] == obj]
+        if len(anchors) != 1:
+            continue
+        om = (anchors[0]['start'], anchors[0]['end'])
         add("hypothesis:" + body, "新增假设从句：" + match.group(0).strip(), obj,
             om or (0, 0), (match.start(), match.end()), "hypothesis_clause_syntax",
             [match.group("body").strip()], "hypothesis_clause")

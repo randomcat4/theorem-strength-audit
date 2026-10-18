@@ -15,13 +15,14 @@ from datetime import datetime, timezone
 
 from render_results import VERSION as RENDERER_VERSION, render_markdown, summarize_result, summary_counts
 
-VERSION = "1.6.1"
+VERSION = "1.7.0"
 __version__ = VERSION
 MAX_PAIRS = 10000
 MAX_LINE_BYTES = 8 * 1024 * 1024
 MAX_SELECTED_BYTES = 128 * 1024 * 1024
 ENGINE_SIBLING_FILES = ('statement_text.py', 'alignment.py', 'premises.py', 'disclosure.py',
-                        'formula_scope.py', 'static_tex_context.py', 'asymptotic_order.py')
+                        'formula_scope.py', 'static_tex_context.py', 'asymptotic_order.py',
+                        'premise_clauses.py', 'revision_groups.py', 'condition_references.py')
 
 
 def _read_pairs(path: Path, maximum: int) -> tuple[list[dict], dict]:
@@ -208,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
         if len(results) > args.max_pairs:
             raise ValueError("引擎输出超过已声明的候选上限。")
         groups = _export_groups(results)
+        reading_count = len({r['algorithm'].get('reading_group', {}).get('group_id') or r['pair_id'] for r in results})
         summaries = [summarize_result(result) for result in results]
         metadata = {
             **input_info,
@@ -245,7 +247,8 @@ def main(argv: list[str] | None = None) -> int:
             "group_count": len(groups),
             "summary_count": len(summaries),
             "core_category_counts": summary_counts(results),
-            "markdown_display_count": min(len(results), args.max_display),
+            "reading_group_count": reading_count,
+            "markdown_display_count": min(reading_count, args.max_display),
             "markdown_order": "provided investigation_queue.rank ascending where present, priority_score descending, pair_id ascending",
             "elapsed_seconds_at_results_written": round(time.perf_counter() - started, 6),
             "memory_after_results_and_markdown_before_manifest": _rss_at_end(),

@@ -12,6 +12,9 @@ Please inspect the code and run the synthetic tests. Report concrete failure cas
 | `statement_text.py` | Shared primitives: active-text masking, tokens, similarity, formula units, signal records |
 | `alignment.py` | Statement alignment evidence and in-batch competition |
 | `premises.py` | Added premises on the same textual object: declared properties, modifiers, hypothesis clauses |
+| `premise_clauses.py` | Bounded TeX-aware hypothesis spans, full old/new clause alignment, footnote evidence and supplied-source equation references |
+| `condition_references.py` | Explicit bounded numbered-list references; exact content matches and unverified similarity suggestions remain distinct |
+| `revision_groups.py` | Literal repeated endpoints within one paper/version transition; reading groups preserve every raw pair |
 | `disclosure.py` | Revision notices, errata, full-TeX scans and their association with the statement |
 | `formula_scope.py` | Bounded formula atoms, clause roles, local range inclusion, unsupported syntax and edit ledger |
 | `asymptotic_order.py` | Single-variable power/log order comparison of paired O/o/Ω/ω/Θ bounds in the conclusion |
@@ -34,6 +37,8 @@ Please inspect the code and run the synthetic tests. Report concrete failure cas
 8. Do source bytes, line coordinates, retained scan evidence and cleanup recovery remain distinct and reproducible?
 9. Do runtime paths read reader feedback, manual verdicts, network services or language models?
 10. Where could the retrieval, extraction or alignment stage miss changes before the detector even sees them?
+11. Does a changed existing predicate remain visible without being mislabeled as an added predicate? Can a note or formula comma truncate an otherwise complete hypothesis?
+12. Are reference targets unique, from the provided endpoint/version, and compared by content? Are their coordinates explicitly those of supplied evidence, not assumed to be canonical-source viewer coordinates?
 
 ## Important constraints
 

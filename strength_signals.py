@@ -19,9 +19,12 @@ from formula_scope import added_formula_premises, analyze_formula_scope, classif
 from statement_text import MAX_CONTEXT, MAX_DISPLAY_TEXT, MAX_TEXT, MAX_TOKENS, _BEGIN_DECL, _CITATION, _ENV, _EXISTENTIAL, _MATH_BLOCK, _META, _NEGATION, _NUMBER, _PROOF, _RELATION, _STYLE, _TOKEN, _UNIVERSAL, _active_text, _formula_backreference, _formula_evidence, _formulas, _math_units, _normalized, _notation_projection, _paper_id, _quote, _scope, _semantic_active, _signal, _similarity, _string, _tokens, _version
 from alignment import _add_competition, _alignment, _title
 from premises import _QUALIFIERS, _new_premises, _tightening_evidence
+from premise_clauses import comparison as compare_clauses, reference_evidence, note_changes, unmatched_clauses
+from condition_references import compare_condition_references
+from revision_groups import group_restatements
 from disclosure import _disclosure, _disclosure_documents
 
-VERSION = "0.6.1"
+VERSION = "0.7.0"
 __version__ = VERSION
 
 
@@ -1100,6 +1103,10 @@ def _investigation_route(record: dict, serious: bool, missing: bool) -> None:
         status = category
         rank = 3 if category in {'formula_scope_change','condition_reference_change','quantifier_scope_change'} else 6
         label = a['change_analysis']['label']
+        if a.get('condition_reference_expansion', {}).get('comparisons'):
+            status, rank, label = 'condition_reference_change', 3, '引用条件列表已展开；编号、内容及适用范围的对应待核'
+        elif a.get('unmatched_hypotheses'):
+            status, rank, label = 'condition_clause_correspondence_pending', 3, '条件从句或触发分支发生变化，逐项对应与方向待核'
         reasons.append({"key": "concrete_change_type", "reason": label})
     else:
         disclosure = a["disclosure_evidence"]
@@ -1131,7 +1138,9 @@ def _investigation_route(record: dict, serious: bool, missing: bool) -> None:
         "meaning": "确定性调查路由；不认证数学弱化、错误、原创归属或全渠道悄然修改。"}
     a["eligible_for_primary_investigation_queue"] = primary
     scope_categories={'premise_change','formula_scope_change','condition_reference_change','quantifier_scope_change'}
-    a['scope_review_required']=bool(not a['rewrite_equivalence']['suppresses_strength_alert'] and a['change_analysis']['category'] in scope_categories)
+    a['scope_review_required']=bool(not a['rewrite_equivalence']['suppresses_strength_alert'] and
+        (a['change_analysis']['category'] in scope_categories or a.get('unmatched_hypotheses')
+         or a.get('condition_reference_expansion', {}).get('comparisons')))
     a['scope_evidence_behind_gate']=bool(a['scope_review_required'] and not a['eligible_for_strength_queue'])
     a['scope_review_gate_note']='检测到范围线索，但旧完整候选框的对齐/来源阻断仍保留；先核对是否同一命题' if a['scope_evidence_behind_gate'] else '没有把范围线索自动当作命题对应认证'
     a["priority_reasons"] = reasons
@@ -1176,6 +1185,17 @@ def analyze_pairs(pairs: Iterable[dict]) -> list[dict]:
                     normalization_coverage={'old':ap_info,'new':bp_info})
         formula_scope = analyze_formula_scope(_active_text(oldtext), _active_text(newtext), _math_units, _formula_evidence,old_context,new_context)
         premises = _new_premises(oldtext, newtext) + added_formula_premises(formula_scope, oldtext, newtext, _math_units)
+        clause_comparison = compare_clauses(oldtext, newtext)
+        references = reference_evidence(pair, old, new, oldtext, newtext, reverse)
+        notes = note_changes(oldtext, newtext)
+        unpaired = unmatched_clauses(oldtext, newtext, clause_comparison)
+        condition_refs = compare_condition_references(pair, old, new, oldtext, newtext, reverse)
+        for endpoint in ('old','new'):
+            for entry in condition_refs[endpoint]:
+                target = references['endpoints'][endpoint].get(entry['label'])
+                if target and target['status'] == 'unresolved_or_ambiguous' and entry['status'] == 'resolved_static_numbered_list':
+                    target.update(status='resolved_as_numbered_condition_list',
+                                  expansion_field='condition_reference_expansion.'+endpoint)
         for premise in premises:
             premise["temporal_direction"] = "unoriented_endpoint_difference" if chronology["direction"] == "unknown" else "provided_order_not_mathematical_entailment"
         tightening = _tightening_evidence(oldtext, newtext, premises, rewrite)
@@ -1264,6 +1284,9 @@ def analyze_pairs(pairs: Iterable[dict]) -> list[dict]:
                                 "observed_text_change": "observed" if text_difference["status"] in {"active_text_changed", "notation_only"} else "not_detected"},
             "text_difference": text_difference, "assertion_role": roles,
             "new_premises": premises, "rewrite_equivalence": rewrite,
+            "hypothesis_comparison": clause_comparison, "reference_expansion": references,
+            "footnote_changes": notes,
+            "unmatched_hypotheses": unpaired, "condition_reference_expansion": condition_refs,
             "formula_scope_analysis": formula_scope, "change_analysis": change_analysis,
             "tightening_textual_evidence": tightening, "disclosure_evidence": document_disclosure,
             "disclosure_precedence": "disclosure_evidence_is_material_scoped_authoritative_legacy_disclosure_is_local_keyword_compatibility_only",
@@ -1300,4 +1323,9 @@ def analyze_pairs(pairs: Iterable[dict]) -> list[dict]:
         _score(record, serious, missing)
         record["algorithm"]["next_step"] = _next_step(record, serious, missing)
         _investigation_route(record, serious, missing)
+        focus=[]
+        if record['algorithm']['unmatched_hypotheses']: focus.append('unmatched_condition_clauses')
+        if record['algorithm']['condition_reference_expansion']['comparisons']: focus.append('expanded_numbered_condition_references')
+        record['algorithm']['investigation_queue']['additional_review_focus']=focus
+    group_restatements(records)
     return records

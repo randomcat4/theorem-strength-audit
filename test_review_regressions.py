@@ -41,7 +41,11 @@ class PremiseReview(unittest.TestCase):
     def test_negation_does_not_cover_positive_predicate(self):
         old = 'Let $G$ be a graph. If $G$ is not planar, then $P$ holds.'
         new = old.replace('not planar', 'planar')
-        self.assertTrue(self.properties(old, new))
+        result = analyze(old, new)['algorithm']
+        self.assertEqual(result['new_premises'], [])
+        self.assertEqual(result['hypothesis_comparison'][0]['status'], 'changed_existing_clause')
+        self.assertIn('not planar', result['hypothesis_comparison'][0]['old_quote'])
+        self.assertFalse(result['rewrite_equivalence']['suppresses_strength_alert'])
 
     def test_modifier_replacement_is_not_generic_addition(self):
         old = 'Let $G$ be a finite graph. Then $P(G)$ holds.'
