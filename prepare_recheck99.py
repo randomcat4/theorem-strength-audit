@@ -171,6 +171,7 @@ def source_access(ep):
     access = {'path': str(path), 'full_tex_available': False, 'statement_start_line': None,
               'statement_end_line': None, 'match_status': 'missing_or_not_tex', 'source_scope': 'unknown'}
     if resolved and not resolved.get('full_tex_available'):
+        info['source_available'] = False
         info['source_access'] = resolved
         return '', resolved
     if not resolved and (not path.is_file() or path.suffix != '.tex' or path.stat().st_size > CAP):
@@ -206,6 +207,13 @@ def source_access(ep):
     access['document_roots'] = text.count('\\begin{document}')
     if resolved and access.get('ref'):
         access['viewer_url'] = resolver.url(access['ref'], access.get('statement_start_line'))
+        original_path = info.get('path')
+        alias = resolver.catalog.get('legacy_paths', {}).get(str(Path(original_path).resolve())) if original_path else None
+        info['viewer_url'] = resolver.url(alias) if alias else access['viewer_url']
+        if not original_path:
+            info['path'] = access['viewer_url']
+    if resolved:
+        info['source_available'] = True
     info['source_access'] = access
     return text, access
 

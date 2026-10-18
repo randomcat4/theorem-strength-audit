@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.request
 from http.server import HTTPServer
 import zipfile
@@ -128,6 +129,25 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(a['backend'], 'missing')
         self.assertFalse(a['fetch_performed'])
         self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_evidence_adapter_refreshes_missing_source_flag_from_original_corpus(self):
+        from prepare_recheck99 import source_access
+        ep = {'paper_id': 'paper', 'version': None, 'text': 'Body.', 'source': {'source_available': False}}
+        with patch('prepare_recheck99.default_resolver', return_value=self.resolver):
+            text, access = source_access(ep)
+        self.assertEqual(text, self.corpus.record['text'])
+        self.assertEqual(access['backend'], 'corpus')
+        self.assertTrue(ep['source']['source_available'])
+        self.assertEqual(ep['source']['path'], access['viewer_url'])
+
+    def test_evidence_adapter_does_not_keep_true_flag_for_missing_version(self):
+        from prepare_recheck99 import source_access
+        ep = {'paper_id': 'paper', 'version': 17, 'text': 'Body.', 'source': {'source_available': True}}
+        with patch('prepare_recheck99.default_resolver', return_value=self.resolver):
+            text, access = source_access(ep)
+        self.assertEqual(text, '')
+        self.assertEqual(access['backend'], 'missing')
+        self.assertFalse(ep['source']['source_available'])
 
     def test_exact_archive_recovery_retains_old_hash(self):
         data = b'original\r\nbytes\xd0\n'

@@ -9,7 +9,7 @@
     "render_results.py": "8f5216911629ed986c9ab770872b4f7c391ac3bae9db18cb311ede86cf609316",
     "run_algorithm.py": "72a21122896f3cabfd092cd269bfa7db63ead5879ef9b120b858d65fd8bd04b0",
     "tex_sources.py": "329cead929358543c4533cb0ba27fe78cc7e4d1cb677c903cb4acb1b1037e54b",
-    "prepare_recheck99.py": "c8c8f7fc6cf39dfa2e75f6e44cd7a144331b6fb0640ecb51b5bd1a0f572b2bf5",
+    "prepare_recheck99.py": "f792dcd9793243e4802bee9bddddfe6fa97e0715d5cc7584e4f2ed9f2ded4f04",
     "tex_reference_keys.py": "bdf291e73adcf62d772af601239b006ae7882c4d11ab67013a2f6a6f1b7ea40e",
     "make_user_views.py": "64affee5bf16fda8abae0791a701e89b0085729dc3a67e295a870abcf41571fa",
     "test_strength_signals.py": "d489129f3dbd691d3820f81f2facefa34c690054a16a9b2b1893216b7dbbec59",
@@ -18,14 +18,14 @@
     "test_prepare_recheck99.py": "e15211d2ae2b2ffc1b1c44884194155d1523f62592c3e4d5d1f817503bd8fb7a",
     "test_tex_reference_keys.py": "840877917637b757ab1b84bd9de1f3a0530db534a12e18125f15d4a39cf76d7a",
     "test_render_readability.py": "200a39d62e54cc0ea208711bbe49dc89e2c8823bdbc49004dd6aa210425f2ccb",
-    "test_tex_sources.py": "43f04089968c660cc8c9a020add54d7c894d8008e3848566f72c2057faa1c415",
+    "test_tex_sources.py": "b7986a1dc9ad1f6eef4df1b8329c727571b631946dd5d65613d685fbcb961b96",
     "PROTOCOL.json": "a053439561872fdf6abd229171965a0e22a157a6333bc1ebbee34dafc15a8770",
     "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73"
   },
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",
   "checks": {
-    "synthetic_tests_run": 228,
+    "synthetic_tests_run": 230,
     "full_environment_all_passed": true,
     "standard_library_only_passed_with_one_optional_test_skipped": true,
     "synthetic_cli_pairs": 3
