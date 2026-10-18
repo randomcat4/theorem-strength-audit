@@ -14,9 +14,10 @@ from hashlib import sha256
 import re
 import unicodedata
 from typing import Iterable
+from asymptotic_order import compare_bounds, mask_bound_arguments
 from formula_scope import analyze_formula_scope, added_formula_premises, classify_change, condition_rewrite_projection
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 __version__ = VERSION
 
 MAX_TEXT = 24000
@@ -429,6 +430,28 @@ def _qualifier_signals(old: str, new: str) -> list[dict]:
                 changed_side="new" if added else "old", changed_span=[pos, end],
                 changed_context_span=evidence["span"], context_truncated=evidence["context_truncated"],
             ))
+    return signals
+
+
+_ASYMPTOTIC_LABELS = {
+    ("upper", "weaker"): "结论上界的增长阶变大（上界放宽）",
+    ("upper", "stronger"): "结论上界的增长阶变小（上界收紧）",
+    ("lower", "weaker"): "结论下界的增长阶变小（下界放宽）",
+    ("lower", "stronger"): "结论下界的增长阶变大（下界收紧）",
+}
+
+
+def _asymptotic_signals(old: str, new: str) -> list[dict]:
+    signals = []
+    for f in compare_bounds(_active_text(old), _active_text(new)):
+        label = _ASYMPTOTIC_LABELS.get((f["kind"], f["direction"]), "结论中的 Θ 界增长阶改变（方向未定）")
+        signals.append(_signal(
+            "asymptotic_bound_change", label, f["old_quote"], f["new_quote"],
+            "同一主语、同类渐近记号的单变量幂与对数阶比较（多项式指数、对数指数依次比较）；只说明这一处界的局部移动，未核常数、变量范围或整条命题的蕴含方向。",
+            f["role"], action=f["direction"], direction_hint="local_conclusion_bound_" + f["direction"],
+            old_span=f["old_span"], new_span=f["new_span"], span_unit="characters_within_extracted_statement",
+            asymptotic_subject=f["subject"], old_order=f["old_order"], new_order=f["new_order"],
+            logical_role_status="bounded_syntax_not_global_entailment"))
     return signals
 
 
@@ -984,9 +1007,11 @@ def _alignment(old: str, new: str, similarity: float) -> dict:
         and not title_mismatch and not object_mismatch)
     same = _normalized(old) == _normalized(new) and bool(_normalized(old))
     # Short statements rarely have four content anchors; accept them when both
-    # sides are mostly covered and the located conclusions nearly coincide.
+    # sides are mostly covered and the located conclusions nearly coincide,
+    # ignoring the arguments of asymptotic bounds compared separately.
+    bound_masked_similarity = _similarity(mask_bound_arguments(ac), mask_bound_arguments(bc)) if ac and bc else None
     short_match = (min(old_coverage, new_coverage) >= .75 and len(anchors) >= 2
-                   and conclusion_similarity is not None and conclusion_similarity >= .9)
+                   and bound_masked_similarity is not None and bound_masked_similarity >= .9)
     strong = similarity >= .65 and (bool(common_formulas) or len(anchors) >= 4 or short_match) and not conclusion_mismatch
     if same:
         status, label = "same_extracted_text", "有界活跃声明词元一致；全局上下文等价仍未知"
@@ -1230,6 +1255,10 @@ def _score(record: dict, serious: bool, missing: bool) -> None:
             raw_change_points += 16
         if "negation_change" in kinds:
             raw_change_points += 16
+        if any(s["kind"] == "asymptotic_bound_change" and s["action"] == "weaker" for s in strength):
+            raw_change_points += 16
+        elif any(s["kind"] == "asymptotic_bound_change" and s["action"] == "changed_tight_bound" for s in strength):
+            raw_change_points += 8  # A tightened bound alone strengthens the result; no extra points.
         if "inequality_change" in kinds:
             raw_change_points += 14
         elif "numeric_formula_change" in kinds:
@@ -1312,6 +1341,8 @@ def _score(record: dict, serious: bool, missing: bool) -> None:
         headline = "窗口含纠错措辞；保留变化线索与公开更正对照"
     elif any(s["kind"] == "restricted_use_context" for s in signals):
         headline = "出现受限使用与文字变化；尚未认证原命题弱化"
+    elif any(s["kind"] == "asymptotic_bound_change" and s["action"] == "weaker" for s in strength):
+        headline = "结论中的渐近界放宽（局部比较）；整体数学方向与说明覆盖待核"
     elif any(s["kind"] == "qualifier_change" for s in strength):
         headline = "检出限定条件的文字变化，需核对同一命题的适用范围"
     elif algo.get("new_premises"):
@@ -2307,6 +2338,8 @@ def analyze_pairs(pairs: Iterable[dict]) -> list[dict]:
         signals = _qualifier_signals(oldtext, newtext) + _polarity_signals(oldtext, newtext)
         signals += _formula_signals(oldtext, newtext, similarity)
         signals += _usage(new, newtext)
+        if not rewrite['suppresses_strength_alert']:
+            signals += _asymptotic_signals(oldtext, newtext)
         if not rewrite['suppresses_strength_alert']:
             for finding in formula_scope['findings']:
                 if finding.get('eligible_as_added_premise'):

@@ -10,6 +10,7 @@ Please inspect the code and run the synthetic tests. Report concrete failure cas
 |---|---|
 | `strength_signals.py` | Alignment gates, temporal/author metadata, premise changes, disclosure association and reading queues |
 | `formula_scope.py` | Bounded formula atoms, clause roles, local range inclusion, unsupported syntax and edit ledger |
+| `asymptotic_order.py` | Single-variable power/log order comparison of paired O/o/Ω/ω/Θ bounds in the conclusion |
 | `static_tex_context.py` | Restricted source-backed literal aliases and identity wrappers |
 | `render_results.py` | Human and compact machine-readable evidence, with uncertainty and source navigation |
 | `run_algorithm.py` | Bounded JSONL execution and input/code/output hashes |
