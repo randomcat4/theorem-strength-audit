@@ -20,6 +20,7 @@ __version__ = VERSION
 MAX_PAIRS = 10000
 MAX_LINE_BYTES = 8 * 1024 * 1024
 MAX_SELECTED_BYTES = 128 * 1024 * 1024
+ENGINE_SIBLING_FILES = ('formula_scope.py', 'static_tex_context.py', 'asymptotic_order.py')
 
 
 def _read_pairs(path: Path, maximum: int) -> tuple[list[dict], dict]:
@@ -226,7 +227,9 @@ def main(argv: list[str] | None = None) -> int:
         groups_info = _atomic_write(output_paths[3], _jsonl(groups))
         summary_info = _atomic_write(output_paths[4], _jsonl(summaries))
         code_info = {}
-        for path in (Path(__file__).resolve(), Path(render_markdown.__code__.co_filename).resolve(), Path(engine.__file__).resolve(), Path(engine.__file__).resolve().parent / 'formula_scope.py', Path(engine.__file__).resolve().parent / 'static_tex_context.py'):
+        engine_dir = Path(engine.__file__).resolve().parent
+        engine_files = [engine_dir / name for name in ENGINE_SIBLING_FILES]
+        for path in (Path(__file__).resolve(), Path(render_markdown.__code__.co_filename).resolve(), Path(engine.__file__).resolve(), *engine_files):
             code_info[path.name] = {"path": str(path), "sha256": _hash_file(path)}
         manifest = {
             "schema_version": "strength-change-discovery-v1",
