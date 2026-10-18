@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from fractions import Fraction
 import re
+from statement_text import _active_text
 
 _OPERATOR = re.compile(r"(?<![A-Za-z\\])(?P<op>O|o|\\mathcal\s*\{\s*O\s*\}|\\Omega|\\Theta|\\omega)\s*(?:\\left|\\bigl?|\\Bigl?)?\s*\(")
 _KIND = {"O": "upper", "o": "upper", "Omega": "lower", "omega": "lower", "Theta": "tight"}
@@ -34,6 +35,8 @@ def growth(argument: str) -> tuple[str, Fraction, Fraction] | None:
     """Return (variable, power exponent, log exponent), or None if unsupported."""
     if len(argument) > 1024:
         return None
+    if set(re.findall(r"\\[A-Za-z]+", argument)) - {r'\sqrt', r'\log', r'\frac', r'\left', r'\right', r'\cdot'}:
+        return None  # Preserve control-word boundaries before removing spaces.
     text = re.sub(r"\\(?:left|right|cdot)(?![A-Za-z])|\\,|\\;|\\!|\s+|\*", "", argument)
     text = re.sub(r"\\log\(([A-Za-z])\)", r"\\log\1", text)
     variable, power, logs, position = None, Fraction(0), Fraction(0), 0
@@ -144,6 +147,7 @@ def _limit(text: str, variable: str) -> str | None:
 
 def compare_bounds(old: str, new: str) -> list[dict]:
     """Pair bounds with the same subject, exact operator and explicit limit."""
+    old, new = _active_text(old), _active_text(new)
     olds, news = bounds(old), bounds(new)
     findings = []
     for key in {(b["subject"], b["operator"]) for b in news}:

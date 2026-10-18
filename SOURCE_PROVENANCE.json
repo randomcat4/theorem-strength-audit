@@ -9,7 +9,7 @@
     "premises.py": "0cd4c0f9e90a5559d16ea318506aa81509e50a730aa442e8069c1c5b06bfcd9a",
     "disclosure.py": "44c4c66cfa1da7c7d83258ce969edbf2557d46981742a0ab5da8c1cf3f21ece5",
     "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
-    "asymptotic_order.py": "fcea773cae3152b6cb9dd4ebe019575e7cdc38f1ff1c4655c3ca61f966557e10",
+    "asymptotic_order.py": "362ee1b83cfededdfdd7c14635e6f77e2a9d4153bd1c22be388af8ffd0974a76",
     "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d",
     "render_results.py": "6e4779d0f37250c17d5a8001a3ccbee94a21b6a087dfaf845d357ec9014d377b",
     "run_algorithm.py": "15ef54f58840ee75a17b7eaf9f720a7ab1fc89b5761540a93f5d54da4ed61b46",
@@ -27,12 +27,12 @@
     "test_tex_sources.py": "b7986a1dc9ad1f6eef4df1b8329c727571b631946dd5d65613d685fbcb961b96",
     "PROTOCOL.json": "ec02fb08bfc1d96f70f5ea956424c0254016b3446893983bedf685f5400ce62d",
     "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73",
-    "test_review_regressions.py": "558ae463d60d5de228705a44db696986a0b272dcd5fe140f9cfcc0ffbc6e96e0"
+    "test_review_regressions.py": "83b138e29865db4fd55c496e8d67377dc64d058d9eb0c3c32e898949c772022b"
   },
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",
   "checks": {
-    "synthetic_tests_run": 270,
+    "synthetic_tests_run": 272,
     "full_environment_all_passed": true,
     "standard_library_only_passed_with_one_optional_test_skipped": true,
     "synthetic_cli_pairs": 3
@@ -52,6 +52,6 @@
     ],
     "original_real_pair_results_recomputed": false,
     "full_corpus_rerun": false,
-    "new_adversarial_test_methods": 19
+    "new_adversarial_test_methods": 21
   }
 }

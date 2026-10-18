@@ -76,6 +76,14 @@ class AsymptoticReview(unittest.TestCase):
         for limit in [r'n\to1', r'n\to-\infty', r'n\to0$ and $n\to\infty']:
             self.assertEqual(self.compare('$f(n)=O(n)$.', '$f(n)=O(n^2)$.', limit), [])
 
+    def test_commented_limit_does_not_enable_comparison(self):
+        prefix = '% As $n\\to\\infty$\nThen '
+        self.assertEqual(compare_bounds(prefix + '$f(n)=O(n)$.', prefix + '$f(n)=O(n^2)$.'), [])
+
+    def test_unknown_control_word_is_not_split_into_known_function(self):
+        self.assertIsNone(growth(r'\logn'))
+        self.assertEqual(growth(r'\log n'), ('n', Fraction(0), Fraction(1)))
+
     def test_nested_condition_is_not_conclusion_bound(self):
         self.assertEqual(self.compare('if $f(n)=O(n)$, the series converges.',
                                       'if $f(n)=O(n^2)$, the series converges.'), [])
