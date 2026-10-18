@@ -20,7 +20,7 @@
     "test_render_readability.py": "200a39d62e54cc0ea208711bbe49dc89e2c8823bdbc49004dd6aa210425f2ccb",
     "test_tex_sources.py": "43f04089968c660cc8c9a020add54d7c894d8008e3848566f72c2057faa1c415",
     "PROTOCOL.json": "a053439561872fdf6abd229171965a0e22a157a6333bc1ebbee34dafc15a8770",
-    "tools/migrate_tex_sources.py": "6fc3ff10cf311f08cf7dd77aa4bfc190bacb6b4a4c20a7810a315439d251307b"
+    "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73"
   },
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",

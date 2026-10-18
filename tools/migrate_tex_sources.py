@@ -239,6 +239,7 @@ def active_reports():
         files.update(root.glob('*.md'))
         files.update(root.glob('*.json'))
     files.update(ROUND / name for name in ('reader_packet_index.json', 'user_views_manifest.json'))
+    files.update(old / name for name in ('model_packet.json', 'model_packet_index.json', 'user_views_manifest.json'))
     for root in (RUN, old / 'final_0_3_1'):
         files.update(root.glob('*/*.md'))
     return sorted(p for p in files if p.is_file())
