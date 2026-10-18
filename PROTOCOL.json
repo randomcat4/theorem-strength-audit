@@ -1,0 +1,71 @@
+{
+  "version": "strength-change-discovery-v1.2",
+  "objective": "完全自动地检索和排序命题强度变化线索，供人类或模型用户阅读；重点作者自身修订，并保留后文反复使用受限表述的群体信号。",
+  "runtime_boundary": {
+    "llm_calls": false,
+    "human_pair_decisions": false,
+    "manual_event_labels_as_features": false,
+    "pipeline": "既有检索/版本材料及有界说明缓存 -> 自动日期和作者关联 -> 来源及命题对齐门控 -> 来源支持的有限改写过滤 -> 对象及分项对应的公式条件/区间/集合范围与新增属性 -> 版本说明和公开勘误的命题关联 -> 作者自身新增条件且已查范围未见说明优先 -> JSON与可读证据输出",
+    "users": "人和模型读取输出、作最终研究判断；不阻塞算法运行。",
+    "development_feedback": "模拟用户反馈用于修改通用规则和展示方式；不以逐案人工标签插入运行时判定。"
+  },
+  "input_policy": {
+    "reuse_frozen_results": true,
+    "rerun_million_paper_corpus": false,
+    "sqlite_read_only": true,
+    "sqlite_cache_kib": 2048,
+    "max_input_pairs": 10000,
+    "raw_scope": "已有命中、按候选编号定点读取的完整索引声明、冻结片段和少量已下载版本材料；不装入全库原文。",
+    "time": "首次提交时间与实际版本时间分别记录，不以paper_id自动推断精确日期。",
+    "authors": "匹配姓名可用于排序，但必须显示尚未消歧。",
+    "context": "附带实际可取得的局部上下文，缺失与截断明确标记。"
+  },
+  "signals": [
+    "同篇不同版本或作者重合的时间后继",
+    "前提/限定词、量词、数值或公式片段的差异",
+    "原文可定位的明确更正措辞",
+    "不同后文论文和不同作者组反复出现的同类受限表述，按论文去重"
+  ],
+  "interpretation": {
+    "score": "可复现的启发式核验优先分，不是准确率或错误概率。",
+    "positive_output": "可疑变化线索，不是数学错误或隐瞒的认证。",
+    "no_disclosure_hit": "只对逐条记录的全文文件、版本说明、摘要或公开勘误扫描范围陈述未命中；不能宣称全部历史版本、期刊及全网均没有说明。",
+    "citation_use": "后文使用受限版本保留为线索；反复使用可提高调查优先级，不直接证明原定理错误。",
+    "math_relation": "仅在可检查文本规则覆盖内标注变化；混合变更、否定与来源问题必须可见。",
+    "rewrite_suppression": "仅在有界规则给出完整纯改写解释时抑制提示，不以所有列表无条件排序或删除数学关系换取少报。",
+    "disclosure_association": "论文级存在纠错不能自动解释当前命题；关联必须展示标签/编号或新增前提短语等可检查依据。",
+    "subset_replay": "recheck_99_20261018仅复看上轮97版本与2跨文正向门控项；保守沿用旧完整候选批的竞争阻断证据。不把子集无竞争当全库最佳对齐，也不从该子集估计漏检。",
+    "tex_access": "全文入口与节选分开；显示文件hash、实际源码匹配行号、静态展开范围和原始项目路径。允许模拟用户实际打开全文。",
+    "formula_scope": "区分前提、参数、结论、定义与分段条件；不同枚举分项不交叉合并。只在有限精确区间/数值/标准数集规则下给出局部包含方向，不认证整体弱化。",
+    "static_tex": "仅消费来源中声明之前、无重定义与条件分支风险的明列字面符号别名/颜色恒等包装；不执行TeX，不把未知宏当排版。",
+    "condition_references": "条件编号或标签清单变化单列；未解析并对应内容时，不推断实际新增前提。",
+    "source_coordinates": "新增条件没有旧端对应条件时，旧端只定位同分项中的符号上下文并标清。拼接多个公式引用时保留多个span，不把拼接引用当连续源码。"
+  },
+  "evaluation": {
+    "frozen_forward_pairs": "重用96条冻结查询及其已审候选，人工对应标签仅供运行结束后的离线评测。",
+    "version_materials": "重用已有自动版本对齐/检索结果，人工确认的案例只作离线哨兵与展示控制。",
+    "holdout": "若报告抽查指标，按query paper SHA256 mod5==0固定为留出，其余开发；不从留出挑阈值。",
+    "users_rounds_minimum": 2,
+    "simulated_user_roles": [
+      "数学研究读者",
+      "只消费JSON的模型用户",
+      "检查误报与证据表达的挑剔用户"
+    ],
+    "feedback_record": "每轮保留代码hash、输入hash、输出hash和模拟用户反馈，标清模拟而非真实用户研究。",
+    "no_claim": "96条既有标签只度量命题对应，不能认证真实强度变化准确率；开发案例不代表全库召回。",
+    "rejection_audit": "先按旧拒绝原因以固定哈希种子抽样并冻结；首次185版本+96跨文检查用于开发，保留其0.4.0输出。泛化修正后另冻结56版本+40跨文样本作留出复验，不从其输出调判定规则。",
+    "coordinate_fix": "之后修来源坐标、局部保证公式关联、展示及公式中的伪条件编号。全部476对门控、优先队列、优先分及原有局部方向与0.4.1逐一一致；一条拒绝样本由条件引用类别清理为量词类别，差异单独记录。",
+    "gate_miss_meaning": "旧门控外补捞的自动线索不等于已确认真实弱化；门后范围文字可能来自不同命题，不能算作真实漏检。"
+  },
+  "source_policy": {
+    "version": "1.0.0",
+    "priority": "original_corpus_then_existing_historical_cache",
+    "version_binding": "native_requested_version_metadata_and_complete_original_tex_content_equality",
+    "statement_overlap_is_version_binding": false,
+    "snapshot_native_version_uniquely_identified_by_tex_equality": false,
+    "corpus_index_rebuild": false,
+    "implicit_source_download": false,
+    "corpus_tex_materialisation": false,
+    "legacy_scan_hashes_preserved": true
+  }
+}

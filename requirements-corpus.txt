@@ -1,0 +1,2 @@
+# Optional existing-corpus reader; the detector uses only Python's standard library.
+indexed_gzip==1.10.3

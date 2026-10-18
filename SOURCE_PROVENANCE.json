@@ -1,0 +1,38 @@
+{
+  "mathematical_engine": "0.4.4",
+  "renderer": "1.5.0",
+  "source_reader": "1.0.0",
+  "files": {
+    "strength_signals.py": "767ee1f17c30022cda6d586de6786a5993d92e57807e6c1b005f3e90b3a9cdee",
+    "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
+    "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d",
+    "render_results.py": "8f5216911629ed986c9ab770872b4f7c391ac3bae9db18cb311ede86cf609316",
+    "run_algorithm.py": "72a21122896f3cabfd092cd269bfa7db63ead5879ef9b120b858d65fd8bd04b0",
+    "tex_sources.py": "329cead929358543c4533cb0ba27fe78cc7e4d1cb677c903cb4acb1b1037e54b",
+    "prepare_recheck99.py": "c8c8f7fc6cf39dfa2e75f6e44cd7a144331b6fb0640ecb51b5bd1a0f572b2bf5",
+    "tex_reference_keys.py": "bdf291e73adcf62d772af601239b006ae7882c4d11ab67013a2f6a6f1b7ea40e",
+    "make_user_views.py": "64affee5bf16fda8abae0791a701e89b0085729dc3a67e295a870abcf41571fa",
+    "test_strength_signals.py": "d489129f3dbd691d3820f81f2facefa34c690054a16a9b2b1893216b7dbbec59",
+    "test_formula_scope.py": "add354883edc866e85cd8884db99bd12039e0422aa76ae99d469b04ea1687cfd",
+    "test_static_tex_context.py": "5eb1ac50e98aca6dc89dd937c48ea73be212daa1031ab29d71ad595bd6875269",
+    "test_prepare_recheck99.py": "e15211d2ae2b2ffc1b1c44884194155d1523f62592c3e4d5d1f817503bd8fb7a",
+    "test_tex_reference_keys.py": "840877917637b757ab1b84bd9de1f3a0530db534a12e18125f15d4a39cf76d7a",
+    "test_render_readability.py": "200a39d62e54cc0ea208711bbe49dc89e2c8823bdbc49004dd6aa210425f2ccb",
+    "test_tex_sources.py": "43f04089968c660cc8c9a020add54d7c894d8008e3848566f72c2057faa1c415",
+    "PROTOCOL.json": "a053439561872fdf6abd229171965a0e22a157a6333bc1ebbee34dafc15a8770",
+    "tools/migrate_tex_sources.py": "6fc3ff10cf311f08cf7dd77aa4bfc190bacb6b4a4c20a7810a315439d251307b"
+  },
+  "corpus_and_original_paper_files_included": false,
+  "sample_kind": "synthetic_only",
+  "checks": {
+    "synthetic_tests_run": 228,
+    "full_environment_all_passed": true,
+    "standard_library_only_passed_with_one_optional_test_skipped": true,
+    "synthetic_cli_pairs": 3
+  },
+  "original_mathematical_core_sha256": {
+    "strength_signals.py": "767ee1f17c30022cda6d586de6786a5993d92e57807e6c1b005f3e90b3a9cdee",
+    "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
+    "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d"
+  }
+}

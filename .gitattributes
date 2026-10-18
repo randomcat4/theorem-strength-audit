@@ -1,0 +1,2 @@
+# Preserve the exact bytes recorded in SOURCE_PROVENANCE.json across platforms.
+* -text whitespace=cr-at-eol
