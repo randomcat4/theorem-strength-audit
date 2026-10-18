@@ -1168,5 +1168,68 @@ class TestAlgorithm031(unittest.TestCase):
                 self.assertFalse(d["explains_added_premise"])
 
 
+class TestGenericPremiseAddition(unittest.TestCase):
+    """Added modifiers and hypothesis clauses outside the fixed type/qualifier lists."""
+
+    def analyze(self, old, new):
+        return analyze_pairs([pair(side("paper", old, version=1), side("paper", new, version=2))])[0]["algorithm"]
+
+    def labels(self, old, new):
+        return [p["property"] for p in self.analyze(old, new)["new_premises"]]
+
+    def test_modifier_on_unlisted_type_is_new_premise(self):
+        self.assertEqual(self.labels("Let $G$ be a graph. Then $G$ is $5$-colourable.",
+                                     "Let $G$ be a planar graph. Then $G$ is $5$-colourable."), ["modifier:planar"])
+
+    def test_listed_qualifier_on_unlisted_type_is_new_premise(self):
+        old = "Let $G$ be a finite simple graph with maximum degree $\\Delta$. Then the chromatic number of $G$ is at most $\\Delta+1$."
+        new = "Let $G$ be a finite simple connected graph with maximum degree $\\Delta$. Then the chromatic number of $G$ is at most $\\Delta+1$."
+        self.assertEqual(self.labels(old, new), ["modifier:connected"])
+
+    def test_new_hypothesis_clause_is_new_premise(self):
+        old = "Let $G$ be a finite simple graph with maximum degree $\\Delta$. Then the chromatic number of $G$ is at most $\\Delta+1$."
+        new = "Let $G$ be a finite simple graph with maximum degree $\\Delta$. If $G$ is triangle-free, then the chromatic number of $G$ is at most $\\Delta+1$."
+        algo = self.analyze(old, new)
+        self.assertEqual([p["property"] for p in algo["new_premises"]], ["hypothesis:g is triangle-free"])
+        self.assertEqual(algo["new_premises"][0]["object_key"], "G")
+        self.assertEqual(algo["tightening_textual_evidence"]["status"], "aligned_new_premises")
+
+    def test_short_statement_aligns_strongly(self):
+        algo = self.analyze("Let $G$ be a graph. Then $G$ is $5$-colourable.",
+                            "Let $G$ be a planar graph. Then $G$ is $5$-colourable.")
+        self.assertEqual(algo["alignment_evidence"]["status"], "strong_textual_overlap")
+        self.assertEqual(algo["candidate_state"], "strength_text_candidate")
+
+    def test_short_statements_with_different_conclusions_stay_partial(self):
+        algo = self.analyze("Let $G$ be a graph. Then $G$ is $5$-colourable.",
+                            "Let $G$ be a graph. Then $G$ has a perfect matching.")
+        self.assertNotEqual(algo["alignment_evidence"]["status"], "strong_textual_overlap")
+
+    def test_non_tightening_edits_are_not_new_premises(self):
+        cases = {
+            "removed": ("Let $G$ be a planar graph. Then $G$ is $5$-colourable.", "Let $G$ be a graph. Then $G$ is $5$-colourable."),
+            "article": ("Let $G$ be a graph. Then $G$ is $5$-colourable.", "Let $G$ be any graph. Then $G$ is $5$-colourable."),
+            "negated": ("Let $G$ be a graph. Then $G$ is $5$-colourable.", "Let $G$ be a not necessarily connected graph. Then $G$ is $5$-colourable."),
+            "reordered": ("Let $G$ be a simple planar graph. Then $G$ is $5$-colourable.", "Let $G$ be a planar simple graph. Then $G$ is $5$-colourable."),
+            "rephrased_hypothesis": ("If $G$ is planar, then $G$ is $5$-colourable.", "Suppose that $G$ is planar. Then $G$ is $5$-colourable."),
+            "moved_to_hypothesis": ("Let $G$ be a planar graph. Then $G$ is $5$-colourable.", "Let $G$ be a graph. If $G$ is planar, then $G$ is $5$-colourable."),
+            "iff_in_conclusion": ("Let $G$ be a graph. Then $G$ is bipartite if and only if it has no odd cycle.", "Let $G$ be a graph. Then $G$ is bipartite if and only if $G$ has no odd cycle."),
+            "different_object": ("Let $G$ be a graph. Then $G$ is $5$-colourable.", "Let $H$ be a planar graph. Then $H$ is $5$-colourable."),
+            "entailed_by_type": ("Let $X$ be a complex manifold. Then $X$ is orientable.", "Let $X$ be a smooth complex manifold. Then $X$ is orientable."),
+        }
+        for name, (old, new) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.labels(old, new), [])
+
+    def test_formula_only_hypothesis_is_reported_once(self):
+        labels = self.labels("Let $n$ be an integer. Then $f(n)$ is prime.",
+                             "Let $n$ be an integer. If $n\\geq 3$, then $f(n)$ is prime.")
+        self.assertEqual(labels, ["formula_added_condition"])
+
+    def test_suppose_declaration_is_reported_once(self):
+        self.assertEqual(self.labels("Suppose $G$ is a graph. Then $G$ is $5$-colourable.",
+                                     "Suppose $G$ is a planar graph. Then $G$ is $5$-colourable."), ["modifier:planar"])
+
+
 if __name__ == "__main__":
     unittest.main()

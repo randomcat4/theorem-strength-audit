@@ -16,7 +16,7 @@ import unicodedata
 from typing import Iterable
 from formula_scope import analyze_formula_scope, added_formula_premises, classify_change, condition_rewrite_projection
 
-VERSION = "0.4.4"
+VERSION = "0.5.0"
 __version__ = VERSION
 
 MAX_TEXT = 24000
@@ -983,7 +983,11 @@ def _alignment(old: str, new: str, similarity: float) -> dict:
         and max(old_coverage, new_coverage) >= .90 and len(anchors) >= 4
         and not title_mismatch and not object_mismatch)
     same = _normalized(old) == _normalized(new) and bool(_normalized(old))
-    strong = similarity >= .65 and (bool(common_formulas) or len(anchors) >= 4) and not conclusion_mismatch
+    # Short statements rarely have four content anchors; accept them when both
+    # sides are mostly covered and the located conclusions nearly coincide.
+    short_match = (min(old_coverage, new_coverage) >= .75 and len(anchors) >= 2
+                   and conclusion_similarity is not None and conclusion_similarity >= .9)
+    strong = similarity >= .65 and (bool(common_formulas) or len(anchors) >= 4 or short_match) and not conclusion_mismatch
     if same:
         status, label = "same_extracted_text", "有界活跃声明词元一致；全局上下文等价仍未知"
     elif title_mismatch:
@@ -1677,6 +1681,46 @@ def _declarations(text: str) -> list[dict]:
     return records
 
 
+# Generic noun-phrase modifiers: "Let $G$ be a graph" -> "a planar graph".
+# The head is the last word before the first qualifying connective; only words
+# added in front of an unchanged head are reported.
+_NP_CONNECTIVE = re.compile(r"\s(?:with|such\s+that|satisfying|of|whose|which|that|for|in|on|over|where|and|or|containing|having)\b|,", re.I)
+_NP_WORD = re.compile(r"\$[^$]{1,40}\$(?:-[A-Za-z]+)*|[A-Za-z][A-Za-z'-]*")
+_NP_IGNORED = frozenset("a an the any arbitrary some given fixed each every all certain".split())
+_NP_NEGATED = re.compile(r"\b(?:not|no|without|necessarily)\b", re.I)
+
+
+def _noun_phrase(description: str) -> tuple[str, list[str]] | None:
+    cut = _NP_CONNECTIVE.search(description)
+    phrase = description[:cut.start()] if cut else description
+    if _NP_NEGATED.search(phrase):
+        return None
+    words = list(_NP_WORD.finditer(phrase))
+    if not words or words[-1].group(0).startswith("$"):
+        return None
+    head = words[-1].group(0).casefold()
+    modifiers = [m.group(0) for m in words[:-1] if m.group(0).casefold() not in _NP_IGNORED]
+    return head, modifiers
+
+
+_HYPOTHESIS = re.compile(r"(?<![A-Za-z])(?P<cue>if|suppose(?:\s+that)?|assume(?:\s+that)?|assuming(?:\s+that)?|provided(?:\s+that)?)\s+(?P<body>[^.;,\r\n]{1,220}?)(?=\s*(?:,|\.|;|\bthen\b|$))", re.I)
+
+
+def _premise_region(text: str) -> str:
+    marker = re.search(r"\bthen\b|\bwe\s+have\b|\\(?:Longrightarrow|implies)(?![A-Za-z])|⇒", text, re.I)
+    return text[:marker.start()] if marker else ""
+
+
+def _hypothesis_clauses(text: str) -> list[re.Match]:
+    region = _premise_region(text)
+    clauses = []
+    for match in _HYPOTHESIS.finditer(region):
+        if re.search(r"\bonly\s*$", region[:match.start()], re.I) or re.match(r"and\s+only\s+if\b", match.group("body"), re.I):
+            continue
+        clauses.append(match)
+    return clauses
+
+
 def _object_mention(text: str, key: str) -> tuple[int, int] | None:
     for unit in _math_units(text):
         if unit["normalized"] == key:
@@ -1723,6 +1767,51 @@ def _new_premises(old: str, new: str) -> list[dict]:
                     phrase = [match.group(0).replace("-", " ") + " " + nd["base"]]
             add(prop, "同一对象新增词面属性：" + nd["properties"][prop], nd["object"],
                 (od["start"], od["end"]), (nd["start"], nd["end"]), nd["scope"], phrase, nd["base"])
+
+    # Any adjective-like word added before the same head noun of the same object.
+    for nd in new_decls:
+        new_np = _noun_phrase(nd["description"])
+        if not new_np:
+            continue
+        for od in old_decls:
+            old_np = _noun_phrase(od["description"]) if od["object"] == nd["object"] else None
+            if not old_np or old_np[0] != new_np[0]:
+                continue
+            old_words = {w.casefold() for w in old_np[1]}
+            for word in new_np[1]:
+                if word.casefold() in old_words:
+                    continue
+                known = [key for key, _, pattern in _QUALIFIERS if pattern.fullmatch(word.replace("-", " "))]
+                if any(key in od["properties"] for key in known) or any(
+                        p["object_key"] == nd["object"] and p["property"] in known for p in findings):
+                    continue
+                add("modifier:" + word.casefold(), "同一对象新增修饰词：" + word, nd["object"],
+                    (od["start"], od["end"]), (nd["start"], nd["end"]), nd["scope"],
+                    [word + " " + new_np[0]], new_np[0])
+            break
+
+    # New hypothesis clauses ("If $G$ is planar, then ...") before the conclusion.
+    # A clause whose content words the old premise already carries (e.g. moved
+    # from "Let $G$ be a planar graph") is not reported as new.
+    old_premise = _normalized(_premise_region(a))
+    old_premise_words = _anchor_words(_premise_region(a))
+    old_bodies = {_normalized(m.group("body")) for m in _hypothesis_clauses(a)}
+    for match in _hypothesis_clauses(b):
+        body = _normalized(match.group("body"))
+        if not body or body in old_bodies or body in old_premise:
+            continue
+        if any(d["start"] < match.end() and match.start() < d["end"] for d in new_decls):
+            continue  # "Suppose $G$ is a planar graph" is compared as a declaration above.
+        # Formula-only clauses ("If $n\\geq 3$") are left to formula_scope.
+        words = _anchor_words(re.sub(r"\$[^$]*\$", " ", match.group("body")))
+        if not words or words <= old_premise_words:
+            continue
+        units = _math_units(match.group("body"))
+        obj = units[0]["normalized"] if units else ""
+        om = _object_mention(a, obj) if obj else None
+        add("hypothesis:" + body, "新增假设从句：" + match.group(0).strip(), obj,
+            om or (0, 0), (match.start(), match.end()), "hypothesis_clause_syntax",
+            [match.group("body").strip()], "hypothesis_clause")
 
     rational = re.compile(r"(?P<object>\$[^$\r\n]{1,120}\$)\s+(?:lying|lies|contained)\s+(?:on|in)\s+(?:some\s+|an?\s+)?rational[-\s]+line\b", re.I)
     for match in rational.finditer(b):

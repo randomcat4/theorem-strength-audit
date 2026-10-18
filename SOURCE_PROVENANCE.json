@@ -1,9 +1,9 @@
 {
-  "mathematical_engine": "0.4.4",
+  "mathematical_engine": "0.5.0",
   "renderer": "1.5.0",
   "source_reader": "1.0.0",
   "files": {
-    "strength_signals.py": "767ee1f17c30022cda6d586de6786a5993d92e57807e6c1b005f3e90b3a9cdee",
+    "strength_signals.py": "97bc83c0bf08b37dbb21e428b451e272ee9959c0caac3332b063f6aaac656639",
     "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
     "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d",
     "render_results.py": "8f5216911629ed986c9ab770872b4f7c391ac3bae9db18cb311ede86cf609316",
@@ -12,7 +12,7 @@
     "prepare_recheck99.py": "f792dcd9793243e4802bee9bddddfe6fa97e0715d5cc7584e4f2ed9f2ded4f04",
     "tex_reference_keys.py": "bdf291e73adcf62d772af601239b006ae7882c4d11ab67013a2f6a6f1b7ea40e",
     "make_user_views.py": "64affee5bf16fda8abae0791a701e89b0085729dc3a67e295a870abcf41571fa",
-    "test_strength_signals.py": "d489129f3dbd691d3820f81f2facefa34c690054a16a9b2b1893216b7dbbec59",
+    "test_strength_signals.py": "6761ac6c1e67cca7c195e9eb4c9b4f58fddf12d34c3782423bb6c46da7eefeee",
     "test_formula_scope.py": "add354883edc866e85cd8884db99bd12039e0422aa76ae99d469b04ea1687cfd",
     "test_static_tex_context.py": "5eb1ac50e98aca6dc89dd937c48ea73be212daa1031ab29d71ad595bd6875269",
     "test_prepare_recheck99.py": "e15211d2ae2b2ffc1b1c44884194155d1523f62592c3e4d5d1f817503bd8fb7a",
@@ -25,7 +25,7 @@
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",
   "checks": {
-    "synthetic_tests_run": 230,
+    "synthetic_tests_run": 238,
     "full_environment_all_passed": true,
     "standard_library_only_passed_with_one_optional_test_skipped": true,
     "synthetic_cli_pairs": 3
