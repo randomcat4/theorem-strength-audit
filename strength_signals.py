@@ -21,7 +21,7 @@ from alignment import _add_competition, _alignment, _title
 from premises import _QUALIFIERS, _new_premises, _tightening_evidence
 from disclosure import _disclosure, _disclosure_documents
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 __version__ = VERSION
 
 
@@ -274,10 +274,10 @@ def _qualifier_signals(old: str, new: str) -> list[dict]:
 
 
 _ASYMPTOTIC_LABELS = {
-    ("upper", "weaker"): "结论上界的增长阶变大（上界放宽）",
-    ("upper", "stronger"): "结论上界的增长阶变小（上界收紧）",
-    ("lower", "weaker"): "结论下界的增长阶变小（下界放宽）",
-    ("lower", "stronger"): "结论下界的增长阶变大（下界收紧）",
+    ("upper", "weaker"): "明确极限下的结论上界放宽",
+    ("upper", "stronger"): "明确极限下的结论上界收紧",
+    ("lower", "weaker"): "明确极限下的结论下界放宽",
+    ("lower", "stronger"): "明确极限下的结论下界收紧",
 }
 
 
@@ -287,10 +287,10 @@ def _asymptotic_signals(old: str, new: str) -> list[dict]:
         label = _ASYMPTOTIC_LABELS.get((f["kind"], f["direction"]), "结论中的 Θ 界增长阶改变（方向未定）")
         signals.append(_signal(
             "asymptotic_bound_change", label, f["old_quote"], f["new_quote"],
-            "同一主语、同类渐近记号的单变量幂与对数阶比较（多项式指数、对数指数依次比较）；只说明这一处界的局部移动，未核常数、变量范围或整条命题的蕴含方向。",
+            "两端明确极限：" + ("变量趋于零" if f['limit'] == 'zero' else "变量趋于正无穷") + "。同一主语、相同渐近记号的局部比较；趋于零时反转幂的大小次序且不比较对数因子。未认证整条命题的蕴含方向。",
             f["role"], action=f["direction"], direction_hint="local_conclusion_bound_" + f["direction"],
             old_span=f["old_span"], new_span=f["new_span"], span_unit="characters_within_extracted_statement",
-            asymptotic_subject=f["subject"], old_order=f["old_order"], new_order=f["new_order"],
+            asymptotic_subject=f["subject"], asymptotic_limit=f['limit'], old_order=f["old_order"], new_order=f["new_order"],
             logical_role_status="bounded_syntax_not_global_entailment"))
     return signals
 

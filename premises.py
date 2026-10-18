@@ -152,9 +152,21 @@ def _object_mention(text: str, key: str) -> tuple[int, int] | None:
     return None
 
 
+def _simple_predicate(body: str) -> tuple[str, str] | None:
+    """Only a positive, single-object adjectival predicate; never bag-of-words."""
+    match = re.fullmatch(r"\s*(?P<object>" + _OBJECT_PATTERN + r")\s+is\s+([A-Za-z]+(?:-[A-Za-z]+)*)\s*", body)
+    if not match or _NP_NEGATED.search(body):
+        return None
+    return _object_key(match.group('object')), match.group(2).casefold()
+
+
 def _new_premises(old: str, new: str) -> list[dict]:
     a, b = _active_text(old), _active_text(new)
     old_decls, new_decls = _declarations(a), _declarations(b)
+    old_predicates = {_simple_predicate(m.group('body')) for m in _hypothesis_clauses(a)}
+    # Enumeration-local bindings require a scope parser; don't let these new
+    # generic rules join declarations from separate branches.
+    generic_scope_supported = not re.search(r"\\item\b|\\begin\s*\{(?:enumerate|cases)\}|\([ivx]+\)", a + b)
     findings = []
 
     def add(prop, label, obj, old_span, new_span, scope, phrase, base="unknown"):
@@ -178,6 +190,11 @@ def _new_premises(old: str, new: str) -> list[dict]:
             continue
         od = matches[0]
         for prop in sorted(nd["properties"].keys() - od["properties"].keys()):
+            property_pattern = next((p for key, _, p in _QUALIFIERS if key == prop), None)
+            if generic_scope_supported and property_pattern and any(
+                    predicate and predicate[0] == nd['object'] and property_pattern.fullmatch(predicate[1])
+                    for predicate in old_predicates):
+                continue
             phrase = []
             if prop == "integral_domain":
                 phrase = ["integral domain", "local domain"]
@@ -192,15 +209,17 @@ def _new_premises(old: str, new: str) -> list[dict]:
     # Any adjective-like word added before the same head noun of the same object.
     for nd in new_decls:
         new_np = _noun_phrase(nd["description"])
-        if not new_np:
+        if not new_np or not generic_scope_supported or sum(d['object'] == nd['object'] for d in old_decls) != 1:
             continue
         for od in old_decls:
             old_np = _noun_phrase(od["description"]) if od["object"] == nd["object"] else None
             if not old_np or old_np[0] != new_np[0]:
                 continue
             old_words = {w.casefold() for w in old_np[1]}
+            if not old_words <= {w.casefold() for w in new_np[1]}:
+                continue  # Replacement, not a supported monotone addition.
             for word in new_np[1]:
-                if word.casefold() in old_words:
+                if word.casefold() in old_words or (nd['object'], word.casefold()) in old_predicates:
                     continue
                 known = [key for key, _, pattern in _QUALIFIERS if pattern.fullmatch(word.replace("-", " "))]
                 if any(key in od["properties"] for key in known) or any(
@@ -212,24 +231,29 @@ def _new_premises(old: str, new: str) -> list[dict]:
             break
 
     # New hypothesis clauses ("If $G$ is planar, then ...") before the conclusion.
-    # A clause whose content words the old premise already carries (e.g. moved
-    # from "Let $G$ be a planar graph") is not reported as new.
-    old_premise = _normalized(_premise_region(a))
-    old_premise_words = _anchor_words(_premise_region(a))
-    old_bodies = {_normalized(m.group("body")) for m in _hypothesis_clauses(a)}
+    # Exact old clauses or a positive property of the same object can cover a
+    # moved condition. Words belonging to another object never provide coverage.
+    old_bodies = {re.sub(r'\s+', ' ', m.group('body')).strip() for m in _hypothesis_clauses(a)}
     for match in _hypothesis_clauses(b):
         body = _normalized(match.group("body"))
-        if not body or body in old_bodies or body in old_premise:
+        if not generic_scope_supported or not body or re.sub(r'\s+', ' ', match.group('body')).strip() in old_bodies:
             continue
         if any(d["start"] < match.end() and match.start() < d["end"] for d in new_decls):
             continue  # "Suppose $G$ is a planar graph" is compared as a declaration above.
         # Formula-only clauses ("If $n\\geq 3$") are left to formula_scope.
         words = _anchor_words(re.sub(r"\$[^$]*\$", " ", match.group("body")))
-        if not words or words <= old_premise_words:
+        if not words:
+            continue
+        predicate = _simple_predicate(match.group('body'))
+        if predicate and (predicate in old_predicates or any(
+                d['object'] == predicate[0] and (np := _noun_phrase(d['description']))
+                and predicate[1] in {w.casefold() for w in np[1]} for d in old_decls)):
             continue
         units = _math_units(match.group("body"))
         obj = units[0]["normalized"] if units else ""
         om = _object_mention(a, obj) if obj else None
+        if not om:
+            continue  # No aligned object: preserve raw changes without a premise claim.
         add("hypothesis:" + body, "新增假设从句：" + match.group(0).strip(), obj,
             om or (0, 0), (match.start(), match.end()), "hypothesis_clause_syntax",
             [match.group("body").strip()], "hypothesis_clause")

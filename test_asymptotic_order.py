@@ -22,7 +22,8 @@ class Growth(unittest.TestCase):
 
 class CompareBounds(unittest.TestCase):
     def directions(self, old, new):
-        return [(f["kind"], f["direction"]) for f in compare_bounds(old, new)]
+        limit = r'As $n\to\infty$. '
+        return [(f["kind"], f["direction"]) for f in compare_bounds(limit + old, limit + new)]
 
     def test_upper_bound_relaxed_is_weaker(self):
         self.assertEqual(self.directions(r"Then $T(n)=O(n\log n)$.", r"Then $T(n)=O(n^{2})$."), [("upper", "weaker")])
@@ -47,7 +48,8 @@ class CompareBounds(unittest.TestCase):
 
 class Integration(unittest.TestCase):
     def analyze(self, old, new):
-        return analyze_pairs([pair(side("paper", old, version=1), side("paper", new, version=2))])[0]["algorithm"]
+        limit = r'As $n\to\infty$. '
+        return analyze_pairs([pair(side("paper", limit + old, version=1), side("paper", limit + new, version=2))])[0]["algorithm"]
 
     def test_relaxed_bound_on_short_statement_is_aligned_and_ranked(self):
         algo = self.analyze(r"Let $G$ be a graph on $n$ vertices. Then $e(G)=\Omega(n^{2})$.",

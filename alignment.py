@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from hashlib import sha256
 import re
-from asymptotic_order import mask_bound_arguments
+from asymptotic_order import compare_bounds
 from statement_text import _BEGIN_DECL, _META, _RELATION, _TOKEN, _active_text, _formulas, _math_units, _normalized, _paper_id, _similarity, _tokens, _version
 
 
@@ -87,7 +87,15 @@ def _alignment(old: str, new: str, similarity: float) -> dict:
     # Short statements rarely have four content anchors; accept them when both
     # sides are mostly covered and the located conclusions nearly coincide,
     # ignoring the arguments of asymptotic bounds compared separately.
-    bound_masked_similarity = _similarity(mask_bound_arguments(ac), mask_bound_arguments(bc)) if ac and bc else None
+    # Mask only the specific paired bounds whose role, subject and limit were
+    # checked. Unsupported expressions must not make unrelated conclusions align.
+    masked = [old, new]
+    compared_bounds = compare_bounds(old, new)
+    for index, side in enumerate(('old', 'new')):
+        for finding in sorted(compared_bounds, key=lambda f: f[side + '_span'], reverse=True):
+            start, end = finding[side + '_span']
+            masked[index] = masked[index][:start] + 'BOUND' + masked[index][end:]
+    bound_masked_similarity = _similarity(_conclusion(masked[0]), _conclusion(masked[1])) if ac and bc else None
     short_match = (min(old_coverage, new_coverage) >= .75 and len(anchors) >= 2
                    and bound_masked_similarity is not None and bound_masked_similarity >= .9)
     strong = similarity >= .65 and (bool(common_formulas) or len(anchors) >= 4 or short_match) and not conclusion_mismatch

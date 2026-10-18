@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 from render_results import VERSION as RENDERER_VERSION, render_markdown, summarize_result, summary_counts
 
-VERSION = "1.5.0"
+VERSION = "1.6.1"
 __version__ = VERSION
 MAX_PAIRS = 10000
 MAX_LINE_BYTES = 8 * 1024 * 1024

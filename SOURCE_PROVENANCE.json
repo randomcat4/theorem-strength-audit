@@ -1,37 +1,38 @@
 {
-  "mathematical_engine": "0.6.0",
-  "renderer": "1.6.0",
+  "mathematical_engine": "0.6.1",
+  "renderer": "1.6.1",
   "source_reader": "1.0.0",
   "files": {
-    "strength_signals.py": "cb943683c5bbe1c8d7f8210a45a1b2b80bb37896f0494010735e2c0088d7f20f",
+    "strength_signals.py": "8d511491d8fc20720bfd5628923b098aff4cc44ddc6a565ff9a5f1e7d8266d93",
     "statement_text.py": "1ea1f4beb6f09e1b5e40159a985eabb86a203b0cd0da1b7bcb61c122dc05d8da",
-    "alignment.py": "480f26247efc002d274a785b603e26c46ce89903a131c845268cc97a42c88734",
-    "premises.py": "93797bc16ad1877e3669cd0eaa03aa46e368cdeff9ae06fff32513ffd5774f95",
+    "alignment.py": "d4f4e986aca74f8db183f2696f1bfa7cb260b25de04fbee6854ae64c8d692788",
+    "premises.py": "0cd4c0f9e90a5559d16ea318506aa81509e50a730aa442e8069c1c5b06bfcd9a",
     "disclosure.py": "44c4c66cfa1da7c7d83258ce969edbf2557d46981742a0ab5da8c1cf3f21ece5",
     "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
-    "asymptotic_order.py": "4eb08e8d0ae800240b0c0a4400f1ca26181146e01ad7fbb82592ea97be26f347",
+    "asymptotic_order.py": "fcea773cae3152b6cb9dd4ebe019575e7cdc38f1ff1c4655c3ca61f966557e10",
     "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d",
-    "render_results.py": "04f7d2ea831892edf3f207f65141f9973bdef7bb6dfdd36a9d256dc80ee393cc",
-    "run_algorithm.py": "b450d0fe58531f88cc9a327f53b9d3942512ea90607f016a898a43f6a4e49aa1",
+    "render_results.py": "6e4779d0f37250c17d5a8001a3ccbee94a21b6a087dfaf845d357ec9014d377b",
+    "run_algorithm.py": "15ef54f58840ee75a17b7eaf9f720a7ab1fc89b5761540a93f5d54da4ed61b46",
     "tex_sources.py": "329cead929358543c4533cb0ba27fe78cc7e4d1cb677c903cb4acb1b1037e54b",
     "prepare_recheck99.py": "f792dcd9793243e4802bee9bddddfe6fa97e0715d5cc7584e4f2ed9f2ded4f04",
     "tex_reference_keys.py": "bdf291e73adcf62d772af601239b006ae7882c4d11ab67013a2f6a6f1b7ea40e",
     "make_user_views.py": "64affee5bf16fda8abae0791a701e89b0085729dc3a67e295a870abcf41571fa",
     "test_strength_signals.py": "6761ac6c1e67cca7c195e9eb4c9b4f58fddf12d34c3782423bb6c46da7eefeee",
     "test_formula_scope.py": "add354883edc866e85cd8884db99bd12039e0422aa76ae99d469b04ea1687cfd",
-    "test_asymptotic_order.py": "eaa34b4e16f6912ae883fc0f0140a6b85917fe35bd3a33e7a0a1f47816ae487e",
+    "test_asymptotic_order.py": "6bd77f0f4963520331545219277d67c33aa75d629246c51cbaa9cf5f2769f453",
     "test_static_tex_context.py": "5eb1ac50e98aca6dc89dd937c48ea73be212daa1031ab29d71ad595bd6875269",
     "test_prepare_recheck99.py": "e15211d2ae2b2ffc1b1c44884194155d1523f62592c3e4d5d1f817503bd8fb7a",
     "test_tex_reference_keys.py": "840877917637b757ab1b84bd9de1f3a0530db534a12e18125f15d4a39cf76d7a",
-    "test_render_readability.py": "95fb2dad06c6bc89ab0c61007a0954a93c076f6c95baf228692a45e5ff01dd2c",
+    "test_render_readability.py": "cf364c58d96eea8e4575edd46510db4a30c5b5bdce35eb9c8acd3857d4d5b0c5",
     "test_tex_sources.py": "b7986a1dc9ad1f6eef4df1b8329c727571b631946dd5d65613d685fbcb961b96",
-    "PROTOCOL.json": "a053439561872fdf6abd229171965a0e22a157a6333bc1ebbee34dafc15a8770",
-    "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73"
+    "PROTOCOL.json": "ec02fb08bfc1d96f70f5ea956424c0254016b3446893983bedf685f5400ce62d",
+    "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73",
+    "test_review_regressions.py": "558ae463d60d5de228705a44db696986a0b272dcd5fe140f9cfcc0ffbc6e96e0"
   },
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",
   "checks": {
-    "synthetic_tests_run": 251,
+    "synthetic_tests_run": 270,
     "full_environment_all_passed": true,
     "standard_library_only_passed_with_one_optional_test_skipped": true,
     "synthetic_cli_pairs": 3
@@ -40,5 +41,17 @@
     "strength_signals.py": "767ee1f17c30022cda6d586de6786a5993d92e57807e6c1b005f3e90b3a9cdee",
     "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
     "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d"
+  },
+  "integration_review": {
+    "base_commit": "603eead0fafc0733f716a8691d18b88481541bba",
+    "accepted_changes": [
+      "object_bound_premise_detection_with_review_fixes",
+      "overview_with_visible_authors_dates_sources",
+      "explicit_limit_bounded_asymptotic_comparison",
+      "module_split"
+    ],
+    "original_real_pair_results_recomputed": false,
+    "full_corpus_rerun": false,
+    "new_adversarial_test_methods": 19
   }
 }

@@ -15,7 +15,7 @@ from pathlib import Path
 from hashlib import sha256
 from typing import Any
 
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 __version__ = VERSION
 DEFAULT_MAX_DISPLAY = 30
 
@@ -801,6 +801,7 @@ def summarize_result(item: Mapping) -> dict:
             "kind", "scope", "term", "action", "direction_hint", "logical_role_status", "quote_source",
             "signal_id", "event_id", "old_span", "new_span", "old_formula_span", "new_formula_span", "changed_span", "changed_side", "span_unit",
             "old_comparison_object", "new_comparison_object", "old_branch_condition", "new_branch_condition",
+            "asymptotic_subject", "asymptotic_limit", "old_order", "new_order",
             "formula_change_structure", "parameter_domain_candidate") if key in signal}
         row["label"] = _signal_label(signal)
         limit = 800 if signal.get("formula_change_structure") in {"single_to_branches", "branches_to_single"} else 340
@@ -873,7 +874,7 @@ def _render_item(item: Mapping, number: int) -> list[str]:
     old_name = _plain(evidence.get("old_title")) or _result_name(old)
     new_name = _plain(evidence.get("new_title")) or _result_name(new)
     if old_name and new_name:
-        headline = old_name + " → " + new_name
+        headline = _change_summary(algorithm) + "（" + old_name + " → " + new_name + "）"
     elif algorithm.get("priority_band") == "no_signal":
         headline = _difference_label(algorithm, old, new)
     else:
@@ -888,7 +889,7 @@ def _render_item(item: Mapping, number: int) -> list[str]:
     ]
     band = _plain(algorithm.get("priority_band"))
     lines.extend([f"调查排序：{_md(_BANDS.get(band, band or '未分级'))} · 启发优先分 {_score_label(item)} · 对号 {_md(pair_id)}", ""])
-    detail = [
+    lines.extend([
         "| 信息 | 原陈述端 | 对照端 |", "|---|---|---|",
         f"| 结果名称（可见原文） | {_md(old_name or '未取得声明名称')} | {_md(new_name or '未取得声明名称')} |",
         f"| 论文／版本 | {_paper(old)} | {_paper(new)} |",
@@ -898,7 +899,8 @@ def _render_item(item: Mapping, number: int) -> list[str]:
         f"| 声明角色／归属 | {_md(_role_label(algorithm, old, 'old'))} | {_md(_role_label(algorithm, new, 'new'))} |",
         f"| 静态编号线索（非 PDF 认证） | {_md(_short(old.get('statement_reference_keys'), 180) or '未知')} | {_md(_short(new.get('statement_reference_keys'), 180) or '未知')} |",
         f"| 完整 TeX／声明位置 | {_full_source_ref(old.get('source'))} | {_full_source_ref(new.get('source'))} |",
-    ]
+    ])
+    detail = []
     if rewriting.get("suppresses_strength_alert"):
         lines[4:4] = ["**程序识别的变化：** " + _md(_status_label(rewriting)) + "。限定换写规则已覆盖这次差异，不再用原始词元比较发出混合强度提示；规则之外的数学等价仍未认证。", "",
                       "**说明状态：** " + _md(_core_disclosure_label(algorithm)) + "。", ""]
@@ -907,16 +909,16 @@ def _render_item(item: Mapping, number: int) -> list[str]:
                       "**说明状态：** " + _md(_core_disclosure_label(algorithm)) + "。", ""]
     if evidence.get("old_conclusion_excerpt") or evidence.get("new_conclusion_excerpt"):
         missing_conclusion='未提取出结论片段；不能据此推断删去结论'
-        detail.append(f"| 结论片段 | {_md(_short(evidence.get('old_conclusion_excerpt'), 240) or missing_conclusion)} | {_md(_short(evidence.get('new_conclusion_excerpt'), 240) or missing_conclusion)} |")
-    detail.append("")
+        lines.append(f"| 结论片段 | {_md(_short(evidence.get('old_conclusion_excerpt'), 240) or missing_conclusion)} | {_md(_short(evidence.get('new_conclusion_excerpt'), 240) or missing_conclusion)} |")
+    lines.append("")
     competition_lines = _competition_lines(evidence)
     if competition_lines:
         detail.extend(["**竞争候选入口（当前输入范围）：**", "", *competition_lines, ""])
     relation_label = authors.get("label") or authors.get("kind") or "作者姓名关系未知"
     chronology_label = chronology.get("label") or chronology.get("status") or "先后方向未知"
-    detail.extend([f"**姓名关系：** {_md(relation_label)}。 **时间方向：** {_md(chronology_label)}。", ""])
+    lines.extend([f"**姓名关系：** {_md(relation_label)}。 **时间方向：** {_md(chronology_label)}。", ""])
     if chronology.get("status") == "paper_date_only":
-        detail.extend(["只确认论文首发顺序，尚未确认这两段声明的版本先后。", ""])
+        lines.extend(["只确认论文首发顺序，尚未确认这两段声明的版本先后。", ""])
     elif not chronology.get("statement_order_confirmed"):
         lines.extend(["两段声明先后未确认；左右排列不代表修订方向。", ""])
     if evidence.get("common_anchors"):
@@ -1026,7 +1028,7 @@ def _render_item(item: Mapping, number: int) -> list[str]:
         lines.extend(_evidence_lines(item))
     lines.extend([
         "**可核验位置：** 原陈述 " + _location(old.get("source")) + "；对照 " + _location(new.get("source")) + "。", "",
-        "<details>", "<summary>版本、作者、对齐依据、后文观察、差异窗口与来源记录</summary>", "",
+        "<details>", "<summary>对齐依据、后文观察、差异窗口与来源记录</summary>", "",
         *detail,
         "下方只是裁剪窗口，不是定位坐标的起点。坐标相对展示声明的完整提取基准（裁剪前，Unicode 码点，零起点半开区间）；原输入偏移见 statement_slice；不是源码坐标。", "",
     ])
@@ -1111,7 +1113,7 @@ def render_markdown(results: list, metadata: Mapping | None = None) -> str:
         "",
         f"**时间范围：** {exact} 条可确认版本／版本日期顺序，{paper_only} 条仅知论文首发先后，{unresolved} 条方向待核或有冲突。",
         "",
-        "**读法（适用于下面每一条）：** 新增前提、对象及结论对应按核心文字规则显示，公式差异本身不等于新增前提；局部条件的收紧或放宽，不等于整条命题已认证弱化；分数不是准确率。说明结论限于逐条列出的已扫描材料，未认证悄然修改。文本调查路由不认证原创归属或数学弱化。每条只在首屏列出变化、说明状态和差异，版本、作者、对齐依据与后文观察收在折叠区。",
+        "**读法（适用于下面每一条）：** 新增前提、对象及结论对应按核心文字规则显示，公式差异本身不等于新增前提；局部条件的收紧或放宽，不等于整条命题已认证弱化；分数不是准确率。说明结论限于逐条列出的已扫描材料，未认证悄然修改。文本调查路由不认证原创归属或数学弱化。首屏保留变化、作者、版本日期、说明状态和全文入口；详细对齐依据与后文观察收在折叠区。",
         "",
     ]
     for field, label in (("scope", "本次输入范围"), ("input_description", "输入说明")):

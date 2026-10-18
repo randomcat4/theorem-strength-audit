@@ -69,11 +69,15 @@ class ReportLayout(unittest.TestCase):
         self.assertIn('新增前提', heading)
         self.assertNotIn('值得核查适用范围', heading)
 
-    def test_metadata_is_folded_and_premise_shown_once_on_top(self):
+    def test_authors_dates_and_sources_visible_with_details_folded(self):
         text = self.render()
         top, folded = text.split('## 1.', 1)[1].split('<details>', 1)
-        self.assertNotIn('| 论文／版本 |', top)
-        self.assertIn('| 论文／版本 |', folded)
+        self.assertIn('| 论文／版本 |', top)
+        self.assertIn('| 论文作者姓名 |', top)
+        self.assertIn('| 实际版本日期 |', top)
+        self.assertIn('| 完整 TeX／声明位置 |', top)
+        self.assertIn('| 结论片段 |', top)
+        self.assertNotIn('| 论文／版本 |', folded)
         self.assertNotIn('本批后文候选观察', top)
         self.assertNotIn('定位：检测事件', top)
         self.assertEqual(top.count('**说明筛查：**') + top.count('**说明状态：**'), 1)
