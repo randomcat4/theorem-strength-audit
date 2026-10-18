@@ -20,7 +20,8 @@ __version__ = VERSION
 MAX_PAIRS = 10000
 MAX_LINE_BYTES = 8 * 1024 * 1024
 MAX_SELECTED_BYTES = 128 * 1024 * 1024
-ENGINE_SIBLING_FILES = ('formula_scope.py', 'static_tex_context.py', 'asymptotic_order.py')
+ENGINE_SIBLING_FILES = ('statement_text.py', 'alignment.py', 'premises.py', 'disclosure.py',
+                        'formula_scope.py', 'static_tex_context.py', 'asymptotic_order.py')
 
 
 def _read_pairs(path: Path, maximum: int) -> tuple[list[dict], dict]:

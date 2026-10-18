@@ -8,7 +8,11 @@ Please inspect the code and run the synthetic tests. Report concrete failure cas
 
 | Module | Responsibility |
 |---|---|
-| `strength_signals.py` | Alignment gates, temporal/author metadata, premise changes, disclosure association and reading queues |
+| `strength_signals.py` | Entry point `analyze_pairs`: temporal/author metadata, change signals, scoring, gates and reading queues |
+| `statement_text.py` | Shared primitives: active-text masking, tokens, similarity, formula units, signal records |
+| `alignment.py` | Statement alignment evidence and in-batch competition |
+| `premises.py` | Added premises on the same textual object: declared properties, modifiers, hypothesis clauses |
+| `disclosure.py` | Revision notices, errata, full-TeX scans and their association with the statement |
 | `formula_scope.py` | Bounded formula atoms, clause roles, local range inclusion, unsupported syntax and edit ledger |
 | `asymptotic_order.py` | Single-variable power/log order comparison of paired O/o/Ω/ω/Θ bounds in the conclusion |
 | `static_tex_context.py` | Restricted source-backed literal aliases and identity wrappers |
