@@ -1,6 +1,6 @@
 {
   "mathematical_engine": "0.6.0",
-  "renderer": "1.5.0",
+  "renderer": "1.6.0",
   "source_reader": "1.0.0",
   "files": {
     "strength_signals.py": "cb943683c5bbe1c8d7f8210a45a1b2b80bb37896f0494010735e2c0088d7f20f",
@@ -11,7 +11,7 @@
     "formula_scope.py": "725744253b58ecaa7b7ecdaac24e6d14f00a732017a76be6a41b91bf8752c94c",
     "asymptotic_order.py": "4eb08e8d0ae800240b0c0a4400f1ca26181146e01ad7fbb82592ea97be26f347",
     "static_tex_context.py": "25396add3836f6b88b96cac994e2f4b32129584a9420d989d989fff7e629e18d",
-    "render_results.py": "8f5216911629ed986c9ab770872b4f7c391ac3bae9db18cb311ede86cf609316",
+    "render_results.py": "04f7d2ea831892edf3f207f65141f9973bdef7bb6dfdd36a9d256dc80ee393cc",
     "run_algorithm.py": "b450d0fe58531f88cc9a327f53b9d3942512ea90607f016a898a43f6a4e49aa1",
     "tex_sources.py": "329cead929358543c4533cb0ba27fe78cc7e4d1cb677c903cb4acb1b1037e54b",
     "prepare_recheck99.py": "f792dcd9793243e4802bee9bddddfe6fa97e0715d5cc7584e4f2ed9f2ded4f04",
@@ -23,7 +23,7 @@
     "test_static_tex_context.py": "5eb1ac50e98aca6dc89dd937c48ea73be212daa1031ab29d71ad595bd6875269",
     "test_prepare_recheck99.py": "e15211d2ae2b2ffc1b1c44884194155d1523f62592c3e4d5d1f817503bd8fb7a",
     "test_tex_reference_keys.py": "840877917637b757ab1b84bd9de1f3a0530db534a12e18125f15d4a39cf76d7a",
-    "test_render_readability.py": "200a39d62e54cc0ea208711bbe49dc89e2c8823bdbc49004dd6aa210425f2ccb",
+    "test_render_readability.py": "95fb2dad06c6bc89ab0c61007a0954a93c076f6c95baf228692a45e5ff01dd2c",
     "test_tex_sources.py": "b7986a1dc9ad1f6eef4df1b8329c727571b631946dd5d65613d685fbcb961b96",
     "PROTOCOL.json": "a053439561872fdf6abd229171965a0e22a157a6333bc1ebbee34dafc15a8770",
     "tools/migrate_tex_sources.py": "a480e8be081f07458c3581c641232a1e66eb44feadc5723a5bb5cffa0ffd9e73"
@@ -31,7 +31,7 @@
   "corpus_and_original_paper_files_included": false,
   "sample_kind": "synthetic_only",
   "checks": {
-    "synthetic_tests_run": 248,
+    "synthetic_tests_run": 251,
     "full_environment_all_passed": true,
     "standard_library_only_passed_with_one_optional_test_skipped": true,
     "synthetic_cli_pairs": 3

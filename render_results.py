@@ -15,7 +15,7 @@ from pathlib import Path
 from hashlib import sha256
 from typing import Any
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 __version__ = VERSION
 DEFAULT_MAX_DISPLAY = 30
 
@@ -574,6 +574,30 @@ def _difference_label(algorithm: Mapping, old: Mapping, new: Mapping) -> str:
     return "声明文本不全，文字差异与强弱均未知"
 
 
+def _change_summary(algorithm: Mapping, limit: int = 3) -> str:
+    """One concrete line naming what changed, for headings and the overview table."""
+    if _map(algorithm.get("rewrite_equivalence")).get("suppresses_strength_alert"):
+        return "仅改写（限定换写规则已覆盖）"
+    premises = [_map(p) for p in _items(algorithm.get("new_premises")) if _map(p)]
+    if premises:
+        parts = []
+        for premise in premises[:limit]:
+            label = _plain(premise.get("label") or premise.get("property"))
+            label = label.split("：", 1)[-1] if "：" in label else label
+            obj = _plain(premise.get("object_key"))
+            parts.append((obj + "：" if obj and obj not in label else "") + label)
+        more = f" 等 {len(premises)} 项" if len(premises) > limit else ""
+        return "新增前提 " + "；".join(_short(part, 80) for part in parts) + more
+    labels = []
+    for signal in _main_signals(algorithm):
+        label = _plain(_map(signal).get("label"))
+        if label and label not in labels:
+            labels.append(label)
+    if labels:
+        return "；".join(_short(label, 80) for label in labels[:2])
+    return _plain(algorithm.get("headline")) or "命题对应与变化待核"
+
+
 def _queue_label(algorithm: Mapping) -> str:
     state = _plain(algorithm.get("candidate_state"))
     def yes_no(value):
@@ -638,7 +662,7 @@ def _signal_counts(algorithm: Mapping, displayed: list[Mapping]) -> dict:
             "count_unit": "detector_records_not_independent_support_events", "independent_support_event_count": None}
 
 
-def _summary_signal(signal: Any, include_explanation: bool = True) -> list[str]:
+def _summary_signal(signal: Any, include_explanation: bool = True, include_location: bool = True) -> list[str]:
     signal = _map(signal)
     title = _signal_label(signal)
     limit = 800 if signal.get("formula_change_structure") in {"single_to_branches", "branches_to_single"} else 340
@@ -650,9 +674,10 @@ def _summary_signal(signal: Any, include_explanation: bool = True) -> list[str]:
         lines.append(f"  对照片段：{_md(new_quote)}")
     if include_explanation and signal.get("explanation"):
         lines.append(f"  {_md(_short(signal['explanation'], 280))}")
-    if signal.get("scope"):
-        lines.append(f"  检查范围：{_md(_short(signal['scope'], 180))}")
-    lines.append("  定位：" + _md(_signal_location(signal)))
+    if include_location:
+        if signal.get("scope"):
+            lines.append(f"  检查范围：{_md(_short(signal['scope'], 180))}")
+        lines.append("  定位：" + _md(_signal_location(signal)))
     return [line + "  " if index < len(lines) - 1 else line for index, line in enumerate(lines)]
 
 
@@ -849,12 +874,10 @@ def _render_item(item: Mapping, number: int) -> list[str]:
     new_name = _plain(evidence.get("new_title")) or _result_name(new)
     if old_name and new_name:
         headline = old_name + " → " + new_name
-    elif tightening:
-        headline = _status_label(tightening)
     elif algorithm.get("priority_band") == "no_signal":
         headline = _difference_label(algorithm, old, new)
     else:
-        headline = algorithm.get("headline") or "命题对应与变化待核"
+        headline = _change_summary(algorithm)
     pair_id = item.get("pair_id") or f"无标识-{number}"
     lines = [
         f"## {number}. {_md(_short(headline, 190))}", "",
@@ -862,6 +885,10 @@ def _render_item(item: Mapping, number: int) -> list[str]:
         "**命题对应：** " + _md(_alignment_label(algorithm)) + "。", "",
         "**首要缺口：** " + _md(_important_gap(algorithm).rstrip("。．. ")) + "。",
         "**下一步核验：** " + _md(_short(_next_step(algorithm), 260).rstrip("。．. ")) + "。", "",
+    ]
+    band = _plain(algorithm.get("priority_band"))
+    lines.extend([f"调查排序：{_md(_BANDS.get(band, band or '未分级'))} · 启发优先分 {_score_label(item)} · 对号 {_md(pair_id)}", ""])
+    detail = [
         "| 信息 | 原陈述端 | 对照端 |", "|---|---|---|",
         f"| 结果名称（可见原文） | {_md(old_name or '未取得声明名称')} | {_md(new_name or '未取得声明名称')} |",
         f"| 论文／版本 | {_paper(old)} | {_paper(new)} |",
@@ -880,25 +907,21 @@ def _render_item(item: Mapping, number: int) -> list[str]:
                       "**说明状态：** " + _md(_core_disclosure_label(algorithm)) + "。", ""]
     if evidence.get("old_conclusion_excerpt") or evidence.get("new_conclusion_excerpt"):
         missing_conclusion='未提取出结论片段；不能据此推断删去结论'
-        lines.append(f"| 结论片段 | {_md(_short(evidence.get('old_conclusion_excerpt'), 240) or missing_conclusion)} | {_md(_short(evidence.get('new_conclusion_excerpt'), 240) or missing_conclusion)} |")
-    lines.append("")
+        detail.append(f"| 结论片段 | {_md(_short(evidence.get('old_conclusion_excerpt'), 240) or missing_conclusion)} | {_md(_short(evidence.get('new_conclusion_excerpt'), 240) or missing_conclusion)} |")
+    detail.append("")
     competition_lines = _competition_lines(evidence)
     if competition_lines:
-        lines.extend(["**竞争候选入口（当前输入范围）：**", "", *competition_lines, ""])
+        detail.extend(["**竞争候选入口（当前输入范围）：**", "", *competition_lines, ""])
     relation_label = authors.get("label") or authors.get("kind") or "作者姓名关系未知"
     chronology_label = chronology.get("label") or chronology.get("status") or "先后方向未知"
-    lines.extend([f"**姓名关系：** {_md(relation_label)}。 **时间方向：** {_md(chronology_label)}。", ""])
+    detail.extend([f"**姓名关系：** {_md(relation_label)}。 **时间方向：** {_md(chronology_label)}。", ""])
     if chronology.get("status") == "paper_date_only":
-        lines.extend(["只确认论文首发顺序，尚未确认这两段声明的版本先后。", ""])
+        detail.extend(["只确认论文首发顺序，尚未确认这两段声明的版本先后。", ""])
     elif not chronology.get("statement_order_confirmed"):
         lines.extend(["两段声明先后未确认；左右排列不代表修订方向。", ""])
     if evidence.get("common_anchors"):
-        lines.extend(["共同文字锚点：" + _md(_short(evidence["common_anchors"], 180)) + "。", ""])
-    band = _plain(algorithm.get("priority_band"))
-    lines.extend([
-        "**文字检测：** " + _md(_difference_label(algorithm, old, new)) + "。",
-        f"调查排序：{_md(_BANDS.get(band, band or '未分级'))} · 启发优先分 {_score_label(item)} · 对号 {_md(pair_id)}", "",
-    ])
+        detail.extend(["共同文字锚点：" + _md(_short(evidence["common_anchors"], 180)) + "。", ""])
+    detail.extend(["**文字检测：** " + _md(_difference_label(algorithm, old, new)) + "。", ""])
     lines.extend(_premise_lines(algorithm))
     analysis = _map(algorithm.get('change_analysis'))
     if analysis and not rewriting.get('suppresses_strength_alert'):
@@ -914,37 +937,44 @@ def _render_item(item: Mapping, number: int) -> list[str]:
                 '  规则：'+_md(finding.get('comparison_rule'))+'。'])
         if len(scope_findings)>5:
             lines.append('另有 '+str(len(scope_findings)-5)+' 项范围记录保留在 JSON。')
-        lines.extend(['','局部条件的收紧或放宽，不等于整条命题已认证弱化；同页保留混合变化和说明材料。',''])
+        lines.append('')
         ledger=_map(_map(algorithm.get('formula_scope_analysis')).get('formula_edit_ledger'))
         for key,name in [('exponents','指数'),('subscripts','下标'),('macros','宏/命令')]:
             entry=_map(ledger.get(key))
             if entry.get('multiset_changed'):
                 old_values='；'.join(_plain(_map(v).get('text'))+' ×'+_plain(_map(v).get('count')) for v in _items(entry.get('removed'))[:5])
                 new_values='；'.join(_plain(_map(v).get('text'))+' ×'+_plain(_map(v).get('count')) for v in _items(entry.get('added'))[:5])
-                lines.append('公式'+name+'词元账目：减少 '+_code(old_values or '无')+'；增加 '+_code(new_values or '无')+'。')
-        lines.append('')
+                detail.append('公式'+name+'词元账目：减少 '+_code(old_values or '无')+'；增加 '+_code(new_values or '无')+'。')
+        detail.append('')
     if rewriting:
         filtered = "；该改写按规则排除出强度警报" if rewriting.get("suppresses_strength_alert") is True else ""
-        lines.extend(["**改写过滤：** " + _md(_status_label(rewriting)) + _md(filtered) + "。", ""])
+        detail.extend(["**改写过滤：** " + _md(_status_label(rewriting)) + _md(filtered) + "。", ""])
     signals = _main_signals(algorithm)
     coverage = _signal_counts(algorithm, signals[:3])
-    lines.extend([f"检测记录展示 {coverage['displayed']}/{coverage['available_total']} 条；省略类型：" + _md(coverage["omitted_kinds"] or "无") + "。记录数不是独立支持事件数。", ""])
+    detail.extend([f"检测记录展示 {coverage['displayed']}/{coverage['available_total']} 条；省略类型：" + _md(coverage["omitted_kinds"] or "无") + "。记录数不是独立支持事件数。", ""])
     for index, change in enumerate(_compact_changes(_map(algorithm.get("text_difference")))["changes"], 1):
         for side, label in (("old", "原端"), ("new", "对照端")):
             if change.get(side + "_changed_text_truncated"):
                 total = _count(change.get(side + "_changed_text_total_characters"))
                 displayed = _count(change.get(side + "_changed_text_displayed_characters"))
-                lines.extend([f"JSON 最小差异账目第 {index} 处{label}：原变化 {total} 字符，保留 {displayed} 字符，**已截断**。", ""])
-    if signals:
+                detail.extend([f"JSON 最小差异账目第 {index} 处{label}：原变化 {total} 字符，保留 {displayed} 字符，**已截断**。", ""])
+    # Premise additions already have their own table above; list the other changes.
+    top_signals = [s for s in signals if not (algorithm.get("new_premises") and s.get("kind") == "aligned_premise_addition")]
+    if top_signals:
         lines.extend(["**具体差异：**", ""])
         seen_explanations = set()
-        for signal in signals[:3]:
+        for signal in top_signals[:3]:
             explanation = _plain(signal.get("explanation"))
-            lines.extend(_summary_signal(signal, include_explanation=explanation not in seen_explanations))
+            lines.extend(_summary_signal(signal, include_explanation=explanation not in seen_explanations, include_location=False))
             seen_explanations.add(explanation)
             lines.append("")
-        if len(signals) > 3:
-            lines.extend([f"另有 {len(signals) - 3} 条主要线索保留在完整 JSON。", ""])
+        if len(top_signals) > 3:
+            lines.extend([f"另有 {len(top_signals) - 3} 条主要线索保留在完整 JSON。", ""])
+    if signals:
+        detail.extend(["**差异定位：**", ""])
+        for signal in signals[:3]:
+            detail.append("- " + _md(_short(_signal_label(signal), 100)) + "：检查范围 " + _md(_short(signal.get("scope") or "未知", 120)) + "；" + _md(_signal_location(signal)))
+        detail.append("")
     else:
         changes = _items(_map(algorithm.get("text_difference")).get("changes"))
         if not rewriting.get('suppresses_strength_alert') and _map(algorithm.get("text_difference")).get("status") != "formatting_only":
@@ -959,35 +989,36 @@ def _render_item(item: Mapping, number: int) -> list[str]:
     qualified_count = support.get("qualified_distinct_later_papers", support.get("distinct_later_papers"))
     adoption = support.get("verified_adoption")
     adoption_label = "未核实（不是零篇）" if adoption is None else _plain(adoption)
-    lines.extend([
+    detail.extend([
         f"**本批后文候选观察：** 观察 {_count(raw_count)} 篇 → 通过候选门控 {_count(qualified_count)} 篇；确认沿用：{_md(adoption_label)}。",
         f"合格项中姓名重合 {_count(support.get('same_author_name_later_papers'))} 篇、姓名不重合 {_count(support.get('third_party_name_later_papers'))} 篇、姓名资料不全 {_count(support.get('papers_without_author_metadata'))} 篇；另有 {_count(support.get('distinct_version_observations'))} 次版本观察。",
         "候选组 " + _md(support.get("group_key") or "未知") + "：同组统计在各行重复引用，**不可跨行相加**；未验证实际沿用。", "",
     ])
     if support.get("raw_observed_later_paper_ids"):
-        lines.append("观察到的后文成员：" + _md(_short(support["raw_observed_later_paper_ids"], 360)) + "。")
+        detail.append("观察到的后文成员：" + _md(_short(support["raw_observed_later_paper_ids"], 360)) + "。")
     basis = _map(algorithm.get("self_revision_basis"))
     if basis:
-        lines.append("文本修订调查路由：已具备 " + _md(_short(basis.get("passed") or "未提供", 180)) + "；仍待核 " + _md(_short(basis.get("pending") or "未提供", 180)) + "。原创命题归属另看独立状态。")
+        detail.append("文本修订调查路由：已具备 " + _md(_short(basis.get("passed") or "未提供", 180)) + "；仍待核 " + _md(_short(basis.get("pending") or "未提供", 180)) + "。原创命题归属另看独立状态。")
     for field, label in (("same_author_name_later_paper_ids", "姓名重合后文"), ("third_party_name_later_paper_ids", "姓名不重合后文")):
         members = _items(support.get(field))
         if members:
-            lines.append(label + "：" + _md(members[:12]) + (f"；另 {len(members) - 12} 篇见 groups.jsonl" if len(members) > 12 else "") + "。")
+            detail.append(label + "：" + _md(members[:12]) + (f"；另 {len(members) - 12} 篇见 groups.jsonl" if len(members) > 12 else "") + "。")
     author_groups = _items(support.get("author_groups"))
     for raw in author_groups[:5]:
         group = _map(raw)
         group_id = group.get("group_id") or group.get("id") or "组标识未知"
         papers = group.get("paper_ids") or group.get("member_paper_ids") or group.get("papers") or []
         names = group.get("normalized_names") or group.get("names") or []
-        lines.append("姓名连通组 " + _md(group_id) + "：论文 " + _md(_short(papers, 210)) + "；姓名 " + _md(_short(names, 160)) + "。")
+        detail.append("姓名连通组 " + _md(group_id) + "：论文 " + _md(_short(papers, 210)) + "；姓名 " + _md(_short(names, 160)) + "。")
     if len(author_groups) > 5:
-        lines.append(f"另 {len(author_groups) - 5} 个姓名连通组见 groups.jsonl。")
+        detail.append(f"另 {len(author_groups) - 5} 个姓名连通组见 groups.jsonl。")
     if not author_groups and support.get("later_paper_ids"):
-        lines.append("组内后文成员：" + _md(_short(support["later_paper_ids"], 360)) + "；姓名组成员明细未提供。")
-    lines.append("")
+        detail.append("组内后文成员：" + _md(_short(support["later_paper_ids"], 360)) + "；姓名组成员明细未提供。")
+    detail.append("")
     status = _plain(disclosure.get("status"))
     disclosure_label = _core_disclosure_label(algorithm) if algorithm.get("disclosure_evidence") else disclosure.get("label") or _DISCLOSURE.get(status) or status or "说明筛查状态未知"
-    lines.extend(["**说明筛查：** " + _md(disclosure_label) + "。", ""])
+    if not (rewriting.get("suppresses_strength_alert") or tightening) or disclosure_label != _core_disclosure_label(algorithm):
+        lines.extend(["**说明筛查：** " + _md(disclosure_label) + "。", ""])
     if algorithm.get("disclosure_evidence"):
         scopes = _map(algorithm.get("disclosure_evidence")).get("statement_notice_strength_scopes")
         if scopes:
@@ -995,7 +1026,8 @@ def _render_item(item: Mapping, number: int) -> list[str]:
         lines.extend(_evidence_lines(item))
     lines.extend([
         "**可核验位置：** 原陈述 " + _location(old.get("source")) + "；对照 " + _location(new.get("source")) + "。", "",
-        "<details>", "<summary>查看差异附近窗口与来源记录；完整文本见 JSON／源码</summary>", "",
+        "<details>", "<summary>版本、作者、对齐依据、后文观察、差异窗口与来源记录</summary>", "",
+        *detail,
         "下方只是裁剪窗口，不是定位坐标的起点。坐标相对展示声明的完整提取基准（裁剪前，Unicode 码点，零起点半开区间）；原输入偏移见 statement_slice；不是源码坐标。", "",
     ])
     for side, side_label, paper in (("old", "原陈述端", old), ("new", "对照端", new)):
@@ -1079,7 +1111,7 @@ def render_markdown(results: list, metadata: Mapping | None = None) -> str:
         "",
         f"**时间范围：** {exact} 条可确认版本／版本日期顺序，{paper_only} 条仅知论文首发先后，{unresolved} 条方向待核或有冲突。",
         "",
-        "**读法：** 新增前提、对象及结论对应按核心文字规则显示，公式差异本身不等于新增前提；分数不是准确率。说明结论限于逐条列出的已扫描材料，未认证悄然修改。文本调查路由不认证原创归属或数学弱化。",
+        "**读法（适用于下面每一条）：** 新增前提、对象及结论对应按核心文字规则显示，公式差异本身不等于新增前提；局部条件的收紧或放宽，不等于整条命题已认证弱化；分数不是准确率。说明结论限于逐条列出的已扫描材料，未认证悄然修改。文本调查路由不认证原创归属或数学弱化。每条只在首屏列出变化、说明状态和差异，版本、作者、对齐依据与后文观察收在折叠区。",
         "",
     ]
     for field, label in (("scope", "本次输入范围"), ("input_description", "输入说明")):
@@ -1097,6 +1129,14 @@ def render_markdown(results: list, metadata: Mapping | None = None) -> str:
         lines.extend(["本次没有可展示的结果。空结果不表示没有强度变化，也不提供漏检率估计。", ""])
     elif len(items) > len(shown):
         lines.extend(["未展示项保留在完整 JSONL 中；本页截断仅影响阅读，不删除候选。", ""])
+    if shown:
+        lines.extend(["## 总览", "", "| # | 对号 | 排序 | 程序识别的变化 | 说明状态 |", "|---|---|---|---|---|"])
+        for number, item in enumerate(shown, 1):
+            algorithm = _map(item.get("algorithm"))
+            band = _plain(algorithm.get("priority_band"))
+            lines.append(f"| {number} | {_md(item.get('pair_id') or '无标识')} | {_md(_BANDS.get(band, band or '未分级'))} · {_score_label(item)} | "
+                         f"{_md(_short(_change_summary(algorithm), 160))} | {_md(_short(_core_disclosure_label(algorithm), 60))} |")
+        lines.append("")
     for number, item in enumerate(shown, 1):
         lines.extend(_render_item(item, number))
     return "\n".join(lines).rstrip() + "\n"

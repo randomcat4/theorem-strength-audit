@@ -51,5 +51,35 @@ class RewritePresentation(unittest.TestCase):
         self.assertIn('不能拿它当旧适用域',text)
 
 
+class ReportLayout(unittest.TestCase):
+    def render(self):
+        from test_strength_signals import pair, side
+        a = r'Let $r\geq0$ be a real parameter. Then $F_r(x)$ converges uniformly for every $x\in X$.'
+        b = r'Let $r>0$ be a real parameter. Then $F_r(x)$ converges uniformly for every $x\in X$.'
+        return render_markdown(analyze_pairs([pair(side('p', a, version=1), side('p', b, version=2), pair_id='positive')]))
+
+    def test_overview_names_the_change(self):
+        text = self.render()
+        overview = text.split('## 总览', 1)[1].split('## 1.', 1)[0]
+        self.assertIn('| 1 | positive |', overview)
+        self.assertIn('新增前提 r', overview)
+
+    def test_heading_is_the_change_not_the_shared_status_sentence(self):
+        heading = next(line for line in self.render().splitlines() if line.startswith('## 1.'))
+        self.assertIn('新增前提', heading)
+        self.assertNotIn('值得核查适用范围', heading)
+
+    def test_metadata_is_folded_and_premise_shown_once_on_top(self):
+        text = self.render()
+        top, folded = text.split('## 1.', 1)[1].split('<details>', 1)
+        self.assertNotIn('| 论文／版本 |', top)
+        self.assertIn('| 论文／版本 |', folded)
+        self.assertNotIn('本批后文候选观察', top)
+        self.assertNotIn('定位：检测事件', top)
+        self.assertEqual(top.count('**说明筛查：**') + top.count('**说明状态：**'), 1)
+        self.assertNotIn('局部条件的收紧或放宽', top)
+        self.assertIn('局部条件的收紧或放宽', text.split('## 总览', 1)[0])
+
+
 if __name__ == '__main__':
     unittest.main()
